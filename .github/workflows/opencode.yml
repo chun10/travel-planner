@@ -1,3 +1,6 @@
+# OpenCode GitHub Integration
+# 在 Issue 或 PR 留言時加入 /opencode 或 /oc 即可觸發
+
 name: opencode
 
 on:
@@ -5,14 +8,9 @@ on:
     types: [created]
   pull_request_review_comment:
     types: [created]
-  pull_request:
-    types: [opened, synchronize, reopened]
-  issues:
-    types: [opened]
 
 jobs:
   opencode:
-    # 核心改動：增加 github.event.sender.type != 'Bot'
     if: |
       github.event.sender.type != 'Bot' && (
         contains(github.event.comment.body, '/oc') ||
@@ -30,14 +28,14 @@ jobs:
       issues: write
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v4
         with:
+          fetch-depth: 1
           persist-credentials: false
 
-      - name: Run opencode
+      - name: Run OpenCode
         uses: anomalyco/opencode/github@latest
         env:
-          GOOGLE_GENERATIVE_AI_API_KEY: ${{ secrets.GOOGLE_GENERATIVE_AI_API_KEY }}
-          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         with:
-          model: google/gemini-3.1-pro-preview
+          model: anthropic/claude-sonnet-4-20250514
