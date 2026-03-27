@@ -7,6 +7,18 @@ import type { DayEvent, ItineraryDay, EventLink, TransportMode, EventType } from
 
 const STORAGE_KEY = 'trip-planner-data';
 const TRIP_ID_KEY = 'trip-planner-trip-id';
+const SYNC_TIMEOUT = 8000; // 8 seconds max for any Supabase call
+
+/** Wrap any thenable with a timeout */
+function withTimeout<T>(promise: PromiseLike<T>, ms: number): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error('Supabase timeout')), ms);
+    promise.then(
+      (v) => { clearTimeout(timer); resolve(v); },
+      (e) => { clearTimeout(timer); reject(e); }
+    );
+  });
+}
 
 interface TripLink {
   id: string;
@@ -149,8 +161,12 @@ export function useSupabaseSync(initialDays: any[], initialTripLinks: TripLink[]
   async function syncFromSupabase() {
     if (!user) return;
     try {
-      // Check table exists
-      const { error: checkErr } = await supabase.from('trips').select('id').limit(1);
+      // Check table exists (with timeout)
+      const checkResult = await withTimeout(
+        supabase.from('trips').select('id').limit(1),
+        SYNC_TIMEOUT
+      );
+      const checkErr = (checkResult as any).error;
       if (checkErr) {
         console.warn('Trips table not accessible:', checkErr.message);
         return;
@@ -168,10 +184,18 @@ export function useSupabaseSync(initialDays: any[], initialTripLinks: TripLink[]
       let trip: TripRow | null = null;
 
       if (tripId) {
-        const { data } = await supabase.from('trips').select('*').eq('id', tripId).single();
-        if (data) {
-          trip = data as TripRow;
-          localStorage.setItem(TRIP_ID_KEY, trip.id);
+        try {
+          const tripResult = await withTimeout(
+            supabase.from('trips').select('*').eq('id', tripId).single(),
+            SYNC_TIMEOUT
+          );
+          const data = (tripResult as any).data;
+          if (data) {
+            trip = data as TripRow;
+            localStorage.setItem(TRIP_ID_KEY, trip.id);
+          }
+        } catch {
+          console.warn('Trip lookup timed out');
         }
       }
 
