@@ -335,7 +335,7 @@ function MainApp({
       </div>
 
       {/* Share Modal */}
-      {showShareModal && isConfigured && tripId && (
+      {showShareModal && (
         <ShareModal
           tripId={tripId}
           tripName={tripName}

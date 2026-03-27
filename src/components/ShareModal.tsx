@@ -15,7 +15,7 @@ interface Collaborator {
 }
 
 interface ShareModalProps {
-  tripId: string;
+  tripId: string | null;
   tripName: string;
   isOwner: boolean;
   onClose: () => void;
@@ -32,10 +32,11 @@ export default function ShareModal({ tripId, tripName, isOwner, onClose }: Share
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    loadCollaborators();
+    if (tripId) loadCollaborators();
   }, [tripId]);
 
   async function loadCollaborators() {
+    if (!tripId) return;
     const { data: collabRows } = await supabase
       .from('trip_collaborators')
       .select('*')
@@ -72,6 +73,7 @@ export default function ShareModal({ tripId, tripName, isOwner, onClose }: Share
 
   const handleAddCollaborator = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!tripId) { setError('行程尚未同步到雲端，請稍後再試。'); return; }
     setError('');
     setSuccess('');
     setLoading(true);
@@ -138,6 +140,7 @@ export default function ShareModal({ tripId, tripName, isOwner, onClose }: Share
   };
 
   const handleCopyLink = () => {
+    if (!tripId) return;
     const url = `${window.location.origin}?trip=${tripId}`;
     navigator.clipboard.writeText(url).then(() => {
       setCopied(true);
@@ -163,7 +166,7 @@ export default function ShareModal({ tripId, tripName, isOwner, onClose }: Share
             <div className="flex gap-2">
               <input
                 readOnly
-                value={`${typeof window !== 'undefined' ? window.location.origin : ''}?trip=${tripId}`}
+                value={tripId ? `${typeof window !== 'undefined' ? window.location.origin : ''}?trip=${tripId}` : '行程同步中，請稍後再試...'}
                 className="flex-1 text-xs bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-slate-600 truncate"
               />
               <button
