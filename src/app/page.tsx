@@ -8,7 +8,7 @@ import { initialItinerary } from '../lib/mockData';
 import { DayEvent, ItineraryDay } from '../lib/types';
 import { useSupabaseSync } from '../lib/useSupabaseSync';
 import { useAuth } from '../lib/AuthContext';
-import { MapPin, Users, Share2, Plus, Edit2, Check, X, LogOut } from 'lucide-react';
+import { MapPin, Users, Share2, Plus, Edit2, Check, X, LogOut, Cloud, CloudOff } from 'lucide-react';
 
 const defaultTripLinks = [
   { id: 'link-vjw', title: 'Visit Japan Web', url: 'https://vjw-lp.digital.go.jp/zh-hant/' },
@@ -73,8 +73,18 @@ function MainApp({
   const [tripNameInput, setTripNameInput] = useState('');
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
+  const [syncStatus, setSyncStatus] = useState<'synced' | 'syncing' | 'error'>('synced');
   const tabsRef = useRef<HTMLDivElement>(null);
   const prevDaysLength = useRef(days.length);
+  const hasInitialized = useRef(false);
+
+  // Scroll to left on initial load
+  useEffect(() => {
+    if (isLoaded && !hasInitialized.current && tabsRef.current) {
+      tabsRef.current.scrollLeft = 0;
+      hasInitialized.current = true;
+    }
+  }, [isLoaded]);
 
   // Auto-scroll to right only when a NEW day is added (not on initial load)
   useEffect(() => {
@@ -243,6 +253,11 @@ function MainApp({
             )}
           </div>
           <div className="flex gap-2 items-center shrink-0 ml-2">
+            {isConfigured && (
+              <span className="text-green-500" title="雲端同步中">
+                <Cloud size={16} />
+              </span>
+            )}
             <button onClick={() => setShowShareModal(true)} className="hover:bg-slate-100 p-2 rounded-full transition-colors text-slate-500"><Users size={20} /></button>
             <button onClick={() => setShowShareModal(true)} className="hover:bg-slate-100 p-2 rounded-full transition-colors text-slate-500"><Share2 size={20} /></button>
 
