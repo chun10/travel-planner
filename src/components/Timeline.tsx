@@ -36,6 +36,7 @@ interface TimelineProps {
   onUpdateEvent: (eventId: string, updatedEvent: DayEvent) => void;
   onAddEvent: () => void;
   onDeleteEvent: (eventId: string) => void;
+  onDeleteDay: (dayId: string) => void;
   onUpdateDayTitle: (newTitle: string) => void;
   onUpdateDayDate: (newDate: string) => void;
   onUpdateDayNotes: (newNotes: string) => void;
@@ -86,6 +87,7 @@ export default function Timeline({
   onUpdateEvent, 
   onAddEvent, 
   onDeleteEvent,
+  onDeleteDay,
   onUpdateDayTitle,
   onUpdateDayDate,
   onUpdateDayNotes,
@@ -266,6 +268,19 @@ export default function Timeline({
               </div>
             )}
           </div>
+
+          {/* Delete Day Button */}
+          <button
+            onClick={() => {
+              if (confirm('確定要刪除此天嗎？')) {
+                onDeleteDay(day.id);
+              }
+            }}
+            className="shrink-0 ml-2 p-2 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors"
+            title="刪除此天"
+          >
+            <Trash2 size={16} />
+          </button>
         </div>
 
         {/* View Toggle (Itinerary vs Notes) */}

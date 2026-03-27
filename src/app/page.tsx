@@ -313,6 +313,7 @@ function MainApp({
               onUpdateEvent={handleUpdateEvent}
               onAddEvent={handleAddEvent}
               onDeleteEvent={handleDeleteEvent}
+              onDeleteDay={handleDeleteDay}
               onUpdateDayTitle={handleUpdateDayTitle}
               onUpdateDayDate={handleUpdateDayDate}
               onUpdateDayNotes={handleUpdateDayNotes}
