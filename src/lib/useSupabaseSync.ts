@@ -246,11 +246,24 @@ export function useSupabaseSync(initialDays: any[], initialTripLinks: TripLink[]
 
       // Only overwrite state if Supabase actually has data
       if (supaDays.length > 0) {
-        setTripName(trip.name);
+        // Read current localStorage title to preserve user edits
+        const localData = loadFromLocalStorage(initialDays, initialTripLinks);
+        const localTitle = localData.tripName;
+        const supaTitle = trip.name;
+
+        // Use local title if user has edited it (not default), otherwise use Supabase
+        const finalTitle = (localTitle !== 'TripPlanner' && supaTitle === 'TripPlanner') ? localTitle : supaTitle;
+
+        setTripName(finalTitle);
         setDays(supaDays);
         setTripLinks(supaLinks);
         setSelectedDayId(supaDays[0]?.id || '');
-        saveToLocalStorage({ tripName: trip.name, days: supaDays, tripLinks: supaLinks, selectedDayId: supaDays[0]?.id || '' });
+        saveToLocalStorage({ tripName: finalTitle, days: supaDays, tripLinks: supaLinks, selectedDayId: supaDays[0]?.id || '' });
+
+        // Sync the title back to Supabase if it was different
+        if (finalTitle !== supaTitle) {
+          supabase.from('trips').update({ name: finalTitle }).eq('id', trip.id);
+        }
       } else {
         // Supabase has no days → sync localStorage to Supabase
         await syncAllToSupabase(trip.id);
