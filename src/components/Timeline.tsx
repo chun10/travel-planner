@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { ItineraryDay, TransportMode, EventLink, DayEvent, EventType } from '../lib/types';
 import { 
   MapPin, 
@@ -117,9 +117,35 @@ export default function Timeline({
   const [transportForm, setTransportForm] = useState<Partial<NonNullable<DayEvent['transportToNext']>>>({});
 
   const [expandedIds, setExpandedIds] = useState<string[]>([]);
+  const [editingTripLinkIds, setEditingTripLinkIds] = useState<Set<string>>(new Set());
+  const prevTripLinksLength = useRef(tripLinks.length);
+
+  // Auto-start editing for newly added links
+  React.useEffect(() => {
+    if (tripLinks.length > prevTripLinksLength.current) {
+      // A new link was added - find it and start editing
+      const newLink = tripLinks[tripLinks.length - 1];
+      if (newLink && !newLink.title && !newLink.url) {
+        setEditingTripLinkIds(prev => new Set(prev).add(newLink.id));
+      }
+    }
+    prevTripLinksLength.current = tripLinks.length;
+  }, [tripLinks.length]);
 
   const toggleExpand = (id: string) => {
     setExpandedIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+  };
+
+  const startEditingTripLink = (id: string) => {
+    setEditingTripLinkIds(prev => new Set(prev).add(id));
+  };
+
+  const stopEditingTripLink = (id: string) => {
+    setEditingTripLinkIds(prev => {
+      const next = new Set(prev);
+      next.delete(id);
+      return next;
+    });
   };
 
   React.useEffect(() => {
@@ -710,20 +736,21 @@ export default function Timeline({
 
             <div className="flex flex-col gap-2 px-4 pb-4">
               {tripLinks.map(link => {
-                const isNewLink = !link.title && !link.url;
+                const isEditing = editingTripLinkIds.has(link.id);
                 return (
                 <div key={link.id} className="group/link flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl p-3 relative hover:bg-indigo-50 hover:border-indigo-200 transition-colors">
                   <div className="bg-indigo-100 text-indigo-600 p-2 rounded-lg shrink-0">
                     <Link2 size={14} />
                   </div>
                   
-                  {isNewLink ? (
+                  {isEditing ? (
                     <div className="flex-1 flex flex-col gap-1.5 min-w-0">
                       <input 
                         placeholder="網站名稱 (例: Visit Japan Web)"
                         value={link.title}
                         onChange={e => onUpdateTripLink(link.id, 'title', e.target.value)}
                         className="w-full text-xs font-bold text-slate-700 border border-slate-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-blue-400 bg-white"
+                        autoFocus
                       />
                       <input 
                         placeholder="貼上網址 (https://...)"
@@ -731,6 +758,14 @@ export default function Timeline({
                         onChange={e => onUpdateTripLink(link.id, 'url', e.target.value)}
                         className="w-full text-[11px] text-slate-500 border border-slate-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-blue-400 bg-white"
                       />
+                      <div className="flex justify-end gap-1 mt-1">
+                        <button 
+                          onClick={() => stopEditingTripLink(link.id)}
+                          className="px-2 py-1 text-[10px] font-bold text-slate-500 bg-white border border-slate-300 rounded-lg hover:bg-slate-50"
+                        >
+                          完成
+                        </button>
+                      </div>
                     </div>
                   ) : (
                     <a 
@@ -745,9 +780,9 @@ export default function Timeline({
                   )}
                   
                   <div className="flex items-center gap-1 shrink-0">
-                    {!isNewLink && (
+                    {!isEditing && (
                       <button 
-                        onClick={() => onUpdateTripLink(link.id, 'title', '')}
+                        onClick={() => startEditingTripLink(link.id)}
                         className="p-1.5 text-slate-300 hover:text-blue-500 rounded-full opacity-0 group-hover/link:opacity-100 transition-all"
                         title="編輯"
                       >
@@ -755,7 +790,10 @@ export default function Timeline({
                       </button>
                     )}
                     <button 
-                      onClick={() => onDeleteTripLink(link.id)}
+                      onClick={() => {
+                        stopEditingTripLink(link.id);
+                        onDeleteTripLink(link.id);
+                      }}
                       className="p-1.5 text-slate-300 hover:text-red-500 rounded-full opacity-0 group-hover/link:opacity-100 transition-all"
                       title="刪除"
                     >
