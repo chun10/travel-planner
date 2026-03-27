@@ -78,11 +78,18 @@ function MainApp({
   const prevDaysLength = useRef(days.length);
   const hasInitialized = useRef(false);
 
-  // Scroll to left on initial load
+  // Scroll to left on initial load (after DOM is fully ready)
   useEffect(() => {
-    if (isLoaded && !hasInitialized.current && tabsRef.current) {
-      tabsRef.current.scrollLeft = 0;
+    if (isLoaded && !hasInitialized.current) {
       hasInitialized.current = true;
+      // Use requestAnimationFrame to ensure DOM is painted
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          if (tabsRef.current) {
+            tabsRef.current.scrollLeft = 0;
+          }
+        });
+      });
     }
   }, [isLoaded]);
 
@@ -299,7 +306,7 @@ function MainApp({
 
         {/* Days Horizontal Tabs */}
         <div className="bg-white border-b border-slate-100 px-3 py-3 flex items-center gap-2 shrink-0 z-10 shadow-sm relative">
-          <div ref={tabsRef} className="flex overflow-x-auto scroll-thin gap-2 flex-1">
+          <div ref={tabsRef} className="flex overflow-x-auto scroll-thin gap-2 flex-1" style={{ direction: 'ltr' }}>
             {days.map((day: ItineraryDay, index: number) => (
               <button
                 key={day.id}
