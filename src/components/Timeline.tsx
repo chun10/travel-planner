@@ -709,23 +709,15 @@ export default function Timeline({
             </div>
 
             <div className="flex flex-col gap-2 px-4 pb-4">
-              {tripLinks.map(link => (
+              {tripLinks.map(link => {
+                const isNewLink = !link.title && !link.url;
+                return (
                 <div key={link.id} className="group/link flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl p-3 relative hover:bg-indigo-50 hover:border-indigo-200 transition-colors">
                   <div className="bg-indigo-100 text-indigo-600 p-2 rounded-lg shrink-0">
                     <Link2 size={14} />
                   </div>
                   
-                  {link.title && link.url ? (
-                    <a 
-                      href={link.url} 
-                      target="_blank" 
-                      rel="noreferrer"
-                      className="flex-1 min-w-0"
-                    >
-                      <div className="text-sm font-bold text-slate-800 truncate">{link.title}</div>
-                      <div className="text-[10px] text-slate-400 truncate">{link.url}</div>
-                    </a>
-                  ) : (
+                  {isNewLink ? (
                     <div className="flex-1 flex flex-col gap-1.5 min-w-0">
                       <input 
                         placeholder="網站名稱 (例: Visit Japan Web)"
@@ -740,10 +732,20 @@ export default function Timeline({
                         className="w-full text-[11px] text-slate-500 border border-slate-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-blue-400 bg-white"
                       />
                     </div>
+                  ) : (
+                    <a 
+                      href={link.url || '#'} 
+                      target="_blank" 
+                      rel="noreferrer"
+                      className="flex-1 min-w-0"
+                    >
+                      <div className="text-sm font-bold text-slate-800 truncate">{link.title || '未命名'}</div>
+                      <div className="text-[10px] text-slate-400 truncate">{link.url || '尚未設定網址'}</div>
+                    </a>
                   )}
                   
                   <div className="flex items-center gap-1 shrink-0">
-                    {link.title && link.url && (
+                    {!isNewLink && (
                       <button 
                         onClick={() => onUpdateTripLink(link.id, 'title', '')}
                         className="p-1.5 text-slate-300 hover:text-blue-500 rounded-full opacity-0 group-hover/link:opacity-100 transition-all"
@@ -761,7 +763,8 @@ export default function Timeline({
                     </button>
                   </div>
                 </div>
-              ))}
+                );
+              })}
 
               {tripLinks.length === 0 && (
                 <div className="text-center text-slate-400 text-[11px] font-medium py-6 border-2 border-dashed border-slate-200 rounded-xl">
