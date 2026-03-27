@@ -58,7 +58,7 @@ interface DayEventRow {
   coordinates: { lat: number; lng: number };
   description: string;
   event_type: string;
-  transport_to_next: { mode: string; duration: string; instructions?: string } | null;
+  transport_to_next: { mode: string; duration: string; instructions?: string; fromStation?: string; toStation?: string } | null;
   links: EventLink[];
   sort_order: number;
 }
@@ -81,7 +81,13 @@ function mapEventRow(row: DayEventRow): DayEvent {
     description: row.description,
     eventType: (row.event_type as EventType) || 'default',
     transportToNext: row.transport_to_next
-      ? { mode: row.transport_to_next.mode as TransportMode, duration: row.transport_to_next.duration, instructions: row.transport_to_next.instructions }
+      ? {
+          mode: row.transport_to_next.mode as TransportMode,
+          duration: row.transport_to_next.duration,
+          instructions: row.transport_to_next.instructions,
+          fromStation: row.transport_to_next.fromStation,
+          toStation: row.transport_to_next.toStation,
+        }
       : undefined,
     links: row.links || [],
   };

@@ -593,14 +593,29 @@ export default function Timeline({
                           </button>
                         ))}
                       </div>
+                      <div className="flex gap-2">
+                        <input 
+                          placeholder="出發站 (例：新宿)"
+                          value={transportForm.fromStation || ''}
+                          onChange={e => setTransportForm({...transportForm, fromStation: e.target.value})}
+                          className="flex-1 text-sm font-bold p-3 border-2 border-slate-200 rounded-xl focus:outline-none focus:border-blue-500 bg-white"
+                        />
+                        <span className="flex items-center text-slate-400 font-bold">→</span>
+                        <input 
+                          placeholder="到達站 (例：澀谷)"
+                          value={transportForm.toStation || ''}
+                          onChange={e => setTransportForm({...transportForm, toStation: e.target.value})}
+                          className="flex-1 text-sm font-bold p-3 border-2 border-slate-200 rounded-xl focus:outline-none focus:border-blue-500 bg-white"
+                        />
+                      </div>
                       <input 
-                        placeholder="預估時間 (例：約 15 分鐘)"
+                        placeholder="預估時間 (例：約 5 分鐘)"
                         value={transportForm.duration || ''}
                         onChange={e => setTransportForm({...transportForm, duration: e.target.value})}
                         className="w-full text-sm font-bold p-3 border-2 border-slate-200 rounded-xl focus:outline-none focus:border-blue-500 bg-white"
                       />
                       <input 
-                        placeholder="交通指示 (例：搭乘山手線至新宿站)"
+                        placeholder="搭乘方式 (例：JR 山手線)"
                         value={transportForm.instructions || ''}
                         onChange={e => setTransportForm({...transportForm, instructions: e.target.value})}
                         className="w-full text-sm p-3 border-2 border-slate-200 rounded-xl focus:outline-none focus:border-blue-500 bg-white"
@@ -618,18 +633,27 @@ export default function Timeline({
                       <div className="flex-1 bg-white/60 backdrop-blur-sm border border-slate-200/60 rounded-xl p-2.5 flex flex-col gap-1 shadow-[0_2px_8px_-4px_rgba(0,0,0,0.05)] hover:bg-white hover:shadow-md transition-all relative pr-10">
                         <div className="flex items-center gap-1.5 font-bold text-slate-600 text-[11px]">
                           {getTransportIcon(event.transportToNext.mode)}
-                          <span>{event.transportToNext.duration}</span>
+                          {event.transportToNext.fromStation && event.transportToNext.toStation ? (
+                            <span>{event.transportToNext.fromStation} → {event.transportToNext.toStation}</span>
+                          ) : (
+                            <span>{event.transportToNext.duration}</span>
+                          )}
                         </div>
                         {event.transportToNext.instructions && (
                           <div className="text-slate-500 text-[11px] leading-tight pl-0.5">
                             {event.transportToNext.instructions}
                           </div>
                         )}
+                        {event.transportToNext.duration && event.transportToNext.fromStation && (
+                          <div className="text-slate-400 text-[10px] leading-tight pl-0.5">
+                            約 {event.transportToNext.duration}
+                          </div>
+                        )}
                         
-                        {event.transportToNext.mode === 'TRANSIT' && day.events[index + 1] && (
+                        {event.transportToNext.mode === 'TRANSIT' && (event.transportToNext.fromStation || event.locationName) && (
                           <div className="flex gap-2 mt-1.5 pt-1.5 border-t border-slate-200/50">
                             <a 
-                              href={`https://world.jorudan.co.jp/mln/zh-tw/?p=0&from=${encodeURIComponent(event.locationName)}&to=${encodeURIComponent(day.events[index + 1].locationName)}`}
+                              href={`https://world.jorudan.co.jp/mln/zh-tw/?p=0&from=${encodeURIComponent(event.transportToNext.fromStation || event.locationName)}&to=${encodeURIComponent(event.transportToNext.toStation || (day.events[index + 1]?.locationName || ''))}`}
                               target="_blank"
                               rel="noreferrer"
                               onClick={(e) => e.stopPropagation()}
@@ -638,7 +662,7 @@ export default function Timeline({
                               <Train size={10} /> Japan Transit
                             </a>
                             <a 
-                              href={`https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(event.locationName)}&destination=${encodeURIComponent(day.events[index + 1].locationName)}&travelmode=transit`}
+                              href={`https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(event.transportToNext.fromStation || event.locationName)}&destination=${encodeURIComponent(event.transportToNext.toStation || (day.events[index + 1]?.locationName || ''))}&travelmode=transit`}
                               target="_blank"
                               rel="noreferrer"
                               onClick={(e) => e.stopPropagation()}

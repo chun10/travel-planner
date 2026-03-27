@@ -20,6 +20,8 @@ export interface DayEvent {
     mode: TransportMode;
     duration: string;
     instructions?: string;
+    fromStation?: string;
+    toStation?: string;
   };
   links?: EventLink[];
 }
