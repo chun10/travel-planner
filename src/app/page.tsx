@@ -74,12 +74,14 @@ function MainApp({
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
   const tabsRef = useRef<HTMLDivElement>(null);
+  const prevDaysLength = useRef(days.length);
 
-  // Auto-scroll to right when days change
+  // Auto-scroll to right only when a NEW day is added (not on initial load)
   useEffect(() => {
-    if (tabsRef.current) {
+    if (days.length > prevDaysLength.current && tabsRef.current) {
       tabsRef.current.scrollLeft = tabsRef.current.scrollWidth;
     }
+    prevDaysLength.current = days.length;
   }, [days.length]);
 
   const selectedDay = days.find(d => d.id === selectedDayId) || days[0];
