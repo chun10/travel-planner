@@ -233,16 +233,40 @@ export function useSupabaseSync(initialDays: any[], initialTripLinks: TripLink[]
 
       console.log('Loaded from Supabase - days:', supaDays.length, 'events:', eventRows.length);
 
-      // Use Supabase data if it exists, otherwise sync local data to Supabase
-      if (supaDays.length > 0) {
+      // Check if localStorage has data
+      const localRaw = localStorage.getItem(STORAGE_KEY);
+      let localHasData = false;
+      if (localRaw) {
+        try {
+          const parsed = JSON.parse(localRaw);
+          localHasData = !!(parsed.days && parsed.days.length > 0);
+        } catch {}
+      }
+
+      // If opened via share link (urlTripId) → use Supabase data so everyone sees same content
+      if (urlTripId && supaDays.length > 0) {
+        // Share link: use Supabase data (so everyone sees same)
         setTripName(trip.name);
         setDays(supaDays);
         setTripLinks(supaLinks);
         setSelectedDayId(supaDays[0]?.id || '');
         saveToLocalStorage({ tripName: trip.name, days: supaDays, tripLinks: supaLinks, selectedDayId: supaDays[0]?.id || '' });
-        console.log('Using Supabase data');
+        console.log('✅ Using Supabase data (share link mode)');
+      } else if (localHasData) {
+        // Not a share link: use localStorage only
+        // NO automatic sync on load - sync only when user makes changes
+        console.log('✅ Using localStorage (no sync on load)');
+      } else if (supaDays.length > 0) {
+        // No local data, but Supabase has data → use Supabase
+        setTripName(trip.name);
+        setDays(supaDays);
+        setTripLinks(supaLinks);
+        setSelectedDayId(supaDays[0]?.id || '');
+        saveToLocalStorage({ tripName: trip.name, days: supaDays, tripLinks: supaLinks, selectedDayId: supaDays[0]?.id || '' });
+        console.log('✅ Using Supabase data (no local data)');
       } else {
-        console.log('No days in Supabase, syncing local data...');
+        // Both empty → sync local to Supabase
+        console.log('✅ First time, syncing to Supabase...');
         await syncAllToSupabase(trip.id);
       }
     } catch (e) {
