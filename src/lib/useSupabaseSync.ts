@@ -233,7 +233,7 @@ export function useSupabaseSync(initialDays: any[], initialTripLinks: TripLink[]
 
       console.log('Loaded from Supabase - days:', supaDays.length, 'events:', eventRows.length);
 
-      // Check if localStorage has data (user might have made changes)
+      // Check if localStorage has data
       const localRaw = localStorage.getItem(STORAGE_KEY);
       let localHasData = false;
       if (localRaw) {
@@ -243,21 +243,32 @@ export function useSupabaseSync(initialDays: any[], initialTripLinks: TripLink[]
         } catch {}
       }
 
-      // Only use Supabase data if localStorage is EMPTY
-      // This prevents overwriting local changes that haven't synced yet
-      if (supaDays.length > 0 && !localHasData) {
+      // If opened via share link (urlTripId) → use Supabase data so everyone sees same content
+      // If NOT a share link → prioritize localStorage (personal copy)
+      if (urlTripId && supaDays.length > 0) {
+        // Share link: use Supabase data (so everyone sees same)
         setTripName(trip.name);
         setDays(supaDays);
         setTripLinks(supaLinks);
         setSelectedDayId(supaDays[0]?.id || '');
         saveToLocalStorage({ tripName: trip.name, days: supaDays, tripLinks: supaLinks, selectedDayId: supaDays[0]?.id || '' });
-        console.log('Using Supabase data (localStorage was empty)');
-      } else if (supaDays.length > 0 && localHasData) {
-        // localStorage has data - sync it TO Supabase to ensure consistency
-        console.log('localStorage has data, syncing to Supabase...');
-        await syncAllToSupabase(trip.id);
+        console.log('Using Supabase data (share link mode)');
+      } else if (localHasData) {
+        // Not a share link: use localStorage (personal copy)
+        // But sync localStorage TO Supabase in background
+        console.log('Using localStorage (personal mode), syncing to Supabase...');
+        syncAllToSupabase(trip.id).catch(err => console.error('Background sync failed:', err));
+      } else if (supaDays.length > 0) {
+        // No local data, but Supabase has data → use Supabase
+        setTripName(trip.name);
+        setDays(supaDays);
+        setTripLinks(supaLinks);
+        setSelectedDayId(supaDays[0]?.id || '');
+        saveToLocalStorage({ tripName: trip.name, days: supaDays, tripLinks: supaLinks, selectedDayId: supaDays[0]?.id || '' });
+        console.log('Using Supabase data (no local data)');
       } else {
-        console.log('No days in Supabase, syncing local data...');
+        // Both empty → sync local to Supabase
+        console.log('No data anywhere, syncing local to Supabase...');
         await syncAllToSupabase(trip.id);
       }
     } catch (e) {
