@@ -321,31 +321,49 @@ export function useSupabaseSync(initialDays: any[], initialTripLinks: TripLink[]
     console.log('syncAllToSupabase done');
   }
 
-  // ── Realtime subscriptions ──
+  // ── Polling instead of Realtime (more stable) ──
   useEffect(() => {
     if (!supabaseReady || !tripIdRef.current) return;
+    
     const tripId = tripIdRef.current;
-    console.log('Setting up realtime subscriptions for trip:', tripId);
+    console.log('Setting up polling for trip:', tripId);
 
-    const channel = supabase.channel(`trip-${tripId}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'trips', filter: `id=eq.${tripId}` }, (p: any) => {
-        if (p.eventType === 'UPDATE' && p.new) { setTripName(p.new.name); }
-      })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'trip_days', filter: `trip_id=eq.${tripId}` }, () => reload())
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'trip_links', filter: `trip_id=eq.${tripId}` }, () => {
-        console.log('Received realtime update for trip_links');
-        reloadLinks();
-      })
-      .subscribe((status) => {
-        console.log('Channel subscription status:', status);
-      });
+    // Poll every 10 seconds for changes
+    const pollInterval = setInterval(async () => {
+      console.log('Polling for updates...');
+      try {
+        // Get current data from Supabase
+        const { data: dayRows } = await supabase
+          .from('trip_days')
+          .select('*')
+          .eq('trip_id', tripId)
+          .order('sort_order', { ascending: true });
 
-    const evChannel = supabase.channel(`events-${tripId}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'day_events' }, () => reload())
-      .subscribe();
+        const dayIds = (dayRows || []).map((d: any) => d.id);
+        
+        const { data: linkRows } = await supabase
+          .from('trip_links')
+          .select('*')
+          .eq('trip_id', tripId);
 
-    return () => { supabase.removeChannel(channel); supabase.removeChannel(evChannel); };
-  }, [supabaseReady, isLoaded]);
+        const supaLinks = (linkRows || []).map((r: any) => ({ id: r.id, title: r.title, url: r.url }));
+
+        // Compare with current state - only update if different
+        if (JSON.stringify(supaLinks) !== JSON.stringify(tripLinks)) {
+          console.log('Links changed, updating...');
+          setTripLinks(supaLinks);
+          saveToLocalStorage({ tripName, days, tripLinks: supaLinks, selectedDayId });
+        }
+      } catch (err) {
+        console.warn('Polling error:', err);
+      }
+    }, 10000); // Poll every 10 seconds
+
+    return () => {
+      console.log('Clearing poll interval');
+      clearInterval(pollInterval);
+    };
+  }, [supabaseReady, isLoaded, tripLinks, tripName, days, selectedDayId]);
 
   async function reload() {
     if (!tripIdRef.current) return;
