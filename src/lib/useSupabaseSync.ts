@@ -146,6 +146,8 @@ export function useSupabaseSync(initialDays: any[], initialTripLinks: TripLink[]
   const tripIdRef = useRef<string | null>(null);
   const supabaseReady = isSupabaseConfigured && !!user;
   const syncedFromSupabase = useRef(false);
+  const syncTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pendingSyncRef = useRef<{ days?: ItineraryDay[]; links?: TripLink[] }>({});
 
   // ── Step 1: Always load from localStorage first (instant) ──
   useEffect(() => {
@@ -388,9 +390,22 @@ export function useSupabaseSync(initialDays: any[], initialTripLinks: TripLink[]
   const updateDays = useCallback((updater: React.SetStateAction<ItineraryDay[]>) => {
     setDays((prev) => {
       const next = typeof updater === 'function' ? (updater as (p: ItineraryDay[]) => ItineraryDay[])(prev) : updater;
+      
       if (tripIdRef.current) {
-        // Fire sync but don't wait - state updates immediately
-        syncDays(next).then(() => console.log('Days synced to Supabase')).catch(err => console.error('Sync failed:', err));
+        // Store pending sync data
+        pendingSyncRef.current.days = next;
+        
+        // Debounce: clear existing timeout and set new one
+        if (syncTimeoutRef.current) {
+          clearTimeout(syncTimeoutRef.current);
+        }
+        syncTimeoutRef.current = setTimeout(() => {
+          if (pendingSyncRef.current.days) {
+            syncDays(pendingSyncRef.current.days)
+              .then(() => console.log('Days synced to Supabase (debounced)'))
+              .catch(err => console.error('Sync failed:', err));
+          }
+        }, 800); // 800ms debounce
       }
       return next;
     });
@@ -399,8 +414,22 @@ export function useSupabaseSync(initialDays: any[], initialTripLinks: TripLink[]
   const updateTripLinks = useCallback((updater: React.SetStateAction<TripLink[]>) => {
     setTripLinks((prev) => {
       const next = typeof updater === 'function' ? (updater as (p: TripLink[]) => TripLink[])(prev) : updater;
+      
       if (tripIdRef.current) {
-        syncLinks(next).then(() => console.log('Links synced to Supabase')).catch(err => console.error('Sync failed:', err));
+        // Store pending sync data
+        pendingSyncRef.current.links = next;
+        
+        // Debounce: clear existing timeout and set new one
+        if (syncTimeoutRef.current) {
+          clearTimeout(syncTimeoutRef.current);
+        }
+        syncTimeoutRef.current = setTimeout(() => {
+          if (pendingSyncRef.current.links) {
+            syncLinks(pendingSyncRef.current.links)
+              .then(() => console.log('Links synced to Supabase (debounced)'))
+              .catch(err => console.error('Sync failed:', err));
+          }
+        }, 800); // 800ms debounce
       }
       return next;
     });
