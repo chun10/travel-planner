@@ -283,14 +283,14 @@ function MainApp({
                 </button>
                 {showUserMenu && (
                   <>
-                    <div className="fixed inset-0 z-30" onClick={() => setShowUserMenu(false)} />
-                    <div className="absolute right-0 top-full mt-2 bg-white rounded-2xl shadow-xl border border-slate-200 py-2 px-1 z-40 w-48">
+                    <div className="fixed inset-0 z-30 pointer-events-auto" onClick={() => setShowUserMenu(false)} />
+                    <div className="absolute right-0 top-full mt-2 bg-white rounded-2xl shadow-xl border border-slate-200 py-2 px-1 z-50 w-48 pointer-events-auto">
                       <div className="px-3 py-2 border-b border-slate-100 mb-1">
                         <p className="text-xs font-bold text-slate-700 truncate">{displayName || '使用者'}</p>
                         <p className="text-[10px] text-slate-400 truncate">{user.email}</p>
                       </div>
                       <button
-                        onClick={() => { setShowUserMenu(false); onSignOut(); }}
+                        onClick={(e) => { e.stopPropagation(); setShowUserMenu(false); onSignOut(); }}
                         className="flex items-center gap-2 w-full text-left px-3 py-2 text-sm text-red-600 font-semibold hover:bg-red-50 rounded-xl transition-colors"
                       >
                         <LogOut size={14} />
