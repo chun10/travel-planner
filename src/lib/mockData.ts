@@ -9,15 +9,20 @@ function uuid(): string {
 const IDS = {
   day1: uuid(),
   day2: uuid(),
+  day3: uuid(),
   evt1: uuid(),
   evt2: uuid(),
   evt3: uuid(),
   evt4: uuid(),
   evt5: uuid(),
   evt6: uuid(),
+  evt7: uuid(),
+  evt8: uuid(),
   link1: uuid(),
   link2: uuid(),
   link3: uuid(),
+  link4: uuid(),
+  link5: uuid(),
 };
 
 export const initialItinerary: ItineraryDay[] = [
@@ -116,6 +121,48 @@ export const initialItinerary: ItineraryDay[] = [
             title: 'Shibuya Sky 門票 Klook',
             url: '#',
             type: 'booking'
+          }
+        ]
+      }
+    ]
+  },
+  {
+    id: IDS.day3,
+    date: '2026-04-12',
+    title: '東京迪士尼樂園',
+    events: [
+      {
+        id: IDS.evt7,
+        time: '08:30',
+        locationName: '東京迪士尼樂園 (Tokyo Disneyland)',
+        coordinates: { lat: 35.632896, lng: 139.880394 },
+        description: '入園後先抽 FastPass，順序遊玩熱門設施。',
+        links: [
+          {
+            id: IDS.link4,
+            title: '門票確認信',
+            url: '#',
+            type: 'booking'
+          }
+        ],
+        transportToNext: {
+          mode: 'TRANSIT',
+          duration: '約 1 小時',
+          instructions: '搭乘 JR 京葉線至舞濱站'
+        }
+      },
+      {
+        id: IDS.evt8,
+        time: '20:00',
+        locationName: '迪士尼煙火表演',
+        coordinates: { lat: 35.632896, lng: 139.880394 },
+        description: '欣賞閉園前的煙火秀，結束美好的迪士尼之旅！',
+        links: [
+          {
+            id: IDS.link5,
+            title: '迪士尼官方 APP',
+            url: '#',
+            type: 'other'
           }
         ]
       }
