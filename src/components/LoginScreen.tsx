@@ -2,9 +2,13 @@
 
 import React, { useState } from 'react';
 import { useAuth } from '../lib/AuthContext';
-import { MapPin } from 'lucide-react';
+import { MapPin, WifiOff } from 'lucide-react';
 
-export default function LoginScreen() {
+interface LoginScreenProps {
+  onGuestMode?: () => void;
+}
+
+export default function LoginScreen({ onGuestMode }: LoginScreenProps) {
   const { signInWithGoogle, signInAsGuest } = useAuth();
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -22,6 +26,16 @@ export default function LoginScreen() {
     const { error } = await signInAsGuest();
     if (error) setError(error);
     setLoading(false);
+  };
+
+  const handleOffline = () => {
+    // Trigger callback to skip auth and use localStorage only
+    if (onGuestMode) {
+      onGuestMode();
+    } else {
+      // Fallback: reload without auth
+      window.location.reload();
+    }
   };
 
   return (
@@ -70,9 +84,19 @@ export default function LoginScreen() {
           <button
             onClick={handleGuest}
             disabled={loading}
-            className="w-full bg-slate-100 text-slate-600 font-bold py-3.5 rounded-xl hover:bg-slate-200 active:scale-[0.98] transition-all text-sm disabled:opacity-50"
+            className="w-full bg-slate-100 text-slate-600 font-bold py-3.5 rounded-xl hover:bg-slate-200 active:scale-[0.98] transition-all text-sm disabled:opacity-50 mb-3"
           >
             以訪客身分進入
+          </button>
+
+          {/* Offline Button */}
+          <button
+            onClick={handleOffline}
+            disabled={loading}
+            className="w-full flex items-center justify-center gap-2 bg-orange-50 text-orange-600 font-bold py-3 rounded-xl hover:bg-orange-100 active:scale-[0.98] transition-all text-sm disabled:opacity-50 border border-orange-200"
+          >
+            <WifiOff size={16} />
+            離線使用（單機模式）
           </button>
 
           {error && (

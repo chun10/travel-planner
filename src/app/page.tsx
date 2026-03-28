@@ -18,22 +18,36 @@ const defaultTripLinks = [
 
 export default function Home() {
   const { user, profile, loading, isConfigured, signOut } = useAuth();
+  const [offlineMode, setOfflineMode] = useState(false);
 
-  // If Supabase is configured, gate on auth
-  if (isConfigured) {
-    if (loading) {
-      return (
-        <div className="flex justify-center items-center w-full min-h-screen bg-slate-100 font-sans">
-          <div className="flex flex-col items-center gap-3">
-            <MapPin className="text-blue-600 animate-pulse" size={40} />
-            <span className="text-slate-500 font-bold text-sm">載入中...</span>
-          </div>
+  // If offline mode is enabled, skip auth and show main app
+  if (offlineMode) {
+    return (
+      <MainApp
+        user={null}
+        displayName="離線模式"
+        avatarUrl={null}
+        isConfigured={false}
+        onSignOut={async () => setOfflineMode(false)}
+      />
+    );
+  }
+
+  // If Supabase is configured and auth is loading, show loading
+  if (isConfigured && loading) {
+    return (
+      <div className="flex justify-center items-center w-full min-h-screen bg-slate-100 font-sans">
+        <div className="flex flex-col items-center gap-3">
+          <MapPin className="text-blue-600 animate-pulse" size={40} />
+          <span className="text-slate-500 font-bold text-sm">載入中...</span>
         </div>
-      );
-    }
-    if (!user) {
-      return <LoginScreen />;
-    }
+      </div>
+    );
+  }
+
+  // If Supabase is configured but user is not logged in, show login or guest option
+  if (isConfigured && !user) {
+    return <LoginScreen onGuestMode={() => setOfflineMode(true)} />;
   }
 
   return (
