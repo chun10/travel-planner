@@ -7,18 +7,6 @@ import type { DayEvent, ItineraryDay, EventLink, TransportMode, EventType } from
 
 const STORAGE_KEY = 'trip-planner-data';
 const TRIP_ID_KEY = 'trip-planner-trip-id';
-const SYNC_TIMEOUT = 15000; // 15 seconds max for any Supabase call
-
-/** Wrap any thenable with a timeout */
-function withTimeout<T>(promise: PromiseLike<T>, ms: number): Promise<T> {
-  return new Promise((resolve, reject) => {
-    const timer = setTimeout(() => reject(new Error('Supabase timeout')), ms);
-    promise.then(
-      (v) => { clearTimeout(timer); resolve(v); },
-      (e) => { clearTimeout(timer); reject(e); }
-    );
-  });
-}
 
 interface TripLink {
   id: string;
@@ -168,54 +156,25 @@ export function useSupabaseSync(initialDays: any[], initialTripLinks: TripLink[]
 
   async function syncFromSupabase() {
     if (!user) return;
+    
+    // Check URL for shared trip link (?trip=UUID)
+    let urlTripId: string | null = null;
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      urlTripId = params.get('trip');
+    }
+
+    // Use trip ID from URL (share link) or localStorage
+    let tripId = urlTripId || localStorage.getItem(TRIP_ID_KEY);
+    let trip: TripRow | null = null;
+
     try {
-      // Check table exists (with timeout)
-      const checkResult = await withTimeout(
-        supabase.from('trips').select('id').limit(1),
-        SYNC_TIMEOUT
-      );
-      const checkErr = (checkResult as any).error;
-      if (checkErr) {
-        console.warn('Trips table not accessible:', checkErr.message);
-        return;
-      }
-
-      // Check URL for shared trip link (?trip=UUID)
-      let urlTripId: string | null = null;
-      if (typeof window !== 'undefined') {
-        const params = new URLSearchParams(window.location.search);
-        urlTripId = params.get('trip');
-      }
-
-      // ── KEY RULE: If localStorage has user data (not empty defaults), keep it ──
-      const localRaw = localStorage.getItem(STORAGE_KEY);
-      let localHasData = false;
-      if (localRaw) {
-        try {
-          const parsed = JSON.parse(localRaw);
-          localHasData = !!(parsed.days && parsed.days.length > 0);
-        } catch {}
-      }
-
-      // Use trip ID from URL (share link) or localStorage
-      // Anyone with the link can view and edit - no permission check needed
-      let tripId = urlTripId || localStorage.getItem(TRIP_ID_KEY);
-      let trip: TripRow | null = null;
-
       // If URL has trip ID, load that trip (don't check ownership)
       if (tripId) {
-        try {
-          const tripResult = await withTimeout(
-            supabase.from('trips').select('*').eq('id', tripId).single(),
-            SYNC_TIMEOUT
-          );
-          const data = (tripResult as any).data;
-          if (data) {
-            trip = data as TripRow;
-            localStorage.setItem(TRIP_ID_KEY, trip.id);
-          }
-        } catch {
-          console.warn('Trip lookup timed out');
+        const { data, error } = await supabase.from('trips').select('*').eq('id', tripId).single();
+        if (!error && data) {
+          trip = data as TripRow;
+          localStorage.setItem(TRIP_ID_KEY, trip.id);
         }
       }
 
@@ -274,7 +233,7 @@ export function useSupabaseSync(initialDays: any[], initialTripLinks: TripLink[]
 
       console.log('Loaded from Supabase - days:', supaDays.length, 'events:', eventRows.length);
 
-      // Always use Supabase data if it exists, otherwise sync current data to Supabase
+      // Use Supabase data if it exists, otherwise sync local data to Supabase
       if (supaDays.length > 0) {
         setTripName(trip.name);
         setDays(supaDays);
@@ -287,7 +246,9 @@ export function useSupabaseSync(initialDays: any[], initialTripLinks: TripLink[]
         await syncAllToSupabase(trip.id);
       }
     } catch (e) {
-      console.error('Failed to sync from Supabase', e);
+      console.error('Failed to sync from Supabase, using localStorage fallback:', e);
+      // Keep using localStorage data - no change needed
+      // The app will work offline with localStorage
     }
   }
 
