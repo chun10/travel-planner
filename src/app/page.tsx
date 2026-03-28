@@ -67,6 +67,7 @@ function MainApp({
     tripLinks, setTripLinks,
     selectedDayId, setSelectedDayId,
     tripId,
+    forceSyncTripLinks,
   } = useSupabaseSync(initialItinerary, defaultTripLinks);
 
   const [isEditingTripName, setIsEditingTripName] = useState(false);
@@ -345,6 +346,10 @@ function MainApp({
               onAddTripLink={handleAddTripLink}
               onUpdateTripLink={handleUpdateTripLink}
               onDeleteTripLink={handleDeleteTripLink}
+              onSaveTripLinks={() => {
+                // Force immediate sync when editing is done
+                forceSyncTripLinks(tripLinks);
+              }}
             />
           ) : (
             <div className="flex flex-col items-center justify-center h-full gap-3 text-slate-400">

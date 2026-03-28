@@ -44,6 +44,7 @@ interface TimelineProps {
   onAddTripLink: () => void;
   onUpdateTripLink: (id: string, field: 'title' | 'url', value: string) => void;
   onDeleteTripLink: (id: string) => void;
+  onSaveTripLinks?: () => void; // Callback to trigger sync when editing is done
 }
 
 const getTransportIcon = (mode: TransportMode, className?: string) => {
@@ -94,7 +95,8 @@ export default function Timeline({
   tripLinks,
   onAddTripLink,
   onUpdateTripLink,
-  onDeleteTripLink
+  onDeleteTripLink,
+  onSaveTripLinks
 }: TimelineProps) {
   if (!day) return null;
 
@@ -146,6 +148,10 @@ export default function Timeline({
       next.delete(id);
       return next;
     });
+    // Trigger sync when editing is done
+    if (onSaveTripLinks) {
+      onSaveTripLinks();
+    }
   };
 
   React.useEffect(() => {

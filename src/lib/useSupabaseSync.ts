@@ -489,6 +489,17 @@ export function useSupabaseSync(initialDays: any[], initialTripLinks: TripLink[]
     console.log('syncLinks: done');
   }
 
+  // Force immediate sync (bypass debounce)
+  const forceSyncTripLinks = useCallback(async (links: TripLink[]) => {
+    // Clear any pending debounce
+    if (syncTimeoutRef.current) {
+      clearTimeout(syncTimeoutRef.current);
+      syncTimeoutRef.current = null;
+    }
+    // Sync immediately
+    await syncLinks(links);
+  }, []);
+
   return {
     isLoaded,
     tripName, setTripName: updateTripName,
@@ -496,5 +507,6 @@ export function useSupabaseSync(initialDays: any[], initialTripLinks: TripLink[]
     tripLinks, setTripLinks: updateTripLinks,
     selectedDayId, setSelectedDayId,
     tripId: tripIdRef.current,
+    forceSyncTripLinks,
   };
 }
