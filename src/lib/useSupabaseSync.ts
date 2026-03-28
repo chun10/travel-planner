@@ -245,14 +245,8 @@ export function useSupabaseSync(initialDays: any[], initialTripLinks: TripLink[]
       // Trip exists in Supabase
       tripIdRef.current = trip.id;
 
-      // ── RULE: If localStorage has data AND no shared link, DON'T overwrite ──
-      if (localHasData && !urlTripId) {
-        // Just sync localStorage to Supabase to keep them in sync
-        await syncAllToSupabase(trip.id);
-        return;
-      }
-
-      // ── RULE: localStorage is empty OR shared link → load from Supabase ──
+      // ── ALWAYS load from Supabase to ensure all devices see the same data ──
+      // localStorage is only used as initial fallback / for offline
       const { data: dayRows } = await supabase
         .from('trip_days').select('*').eq('trip_id', trip.id).order('sort_order', { ascending: true });
 
