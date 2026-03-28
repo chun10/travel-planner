@@ -323,14 +323,20 @@ export function useSupabaseSync(initialDays: any[], initialTripLinks: TripLink[]
   useEffect(() => {
     if (!supabaseReady || !tripIdRef.current) return;
     const tripId = tripIdRef.current;
+    console.log('Setting up realtime subscriptions for trip:', tripId);
 
     const channel = supabase.channel(`trip-${tripId}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'trips', filter: `id=eq.${tripId}` }, (p: any) => {
         if (p.eventType === 'UPDATE' && p.new) { setTripName(p.new.name); }
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'trip_days', filter: `trip_id=eq.${tripId}` }, () => reload())
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'trip_links', filter: `trip_id=eq.${tripId}` }, () => reloadLinks())
-      .subscribe();
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'trip_links', filter: `trip_id=eq.${tripId}` }, () => {
+        console.log('Received realtime update for trip_links');
+        reloadLinks();
+      })
+      .subscribe((status) => {
+        console.log('Channel subscription status:', status);
+      });
 
     const evChannel = supabase.channel(`events-${tripId}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'day_events' }, () => reload())
@@ -355,8 +361,11 @@ export function useSupabaseSync(initialDays: any[], initialTripLinks: TripLink[]
 
   async function reloadLinks() {
     if (!tripIdRef.current) return;
-    const { data: rows } = await supabase.from('trip_links').select('*').eq('trip_id', tripIdRef.current);
+    console.log('reloadLinks: reloading trip links from Supabase');
+    const { data: rows, error } = await supabase.from('trip_links').select('*').eq('trip_id', tripIdRef.current);
+    if (error) console.error('reloadLinks: error:', error);
     const mapped = (rows as TripLinkRow[] || []).map((r) => ({ id: r.id, title: r.title, url: r.url }));
+    console.log('reloadLinks: loaded', mapped.length, 'links');
     setTripLinks(mapped);
     saveToLocalStorage({ tripName, days, tripLinks: mapped, selectedDayId });
   }
@@ -430,15 +439,25 @@ export function useSupabaseSync(initialDays: any[], initialTripLinks: TripLink[]
   }
 
   async function syncLinks(links: TripLink[]) {
-    if (!tripIdRef.current) return;
+    if (!tripIdRef.current) {
+      console.log('syncLinks: no tripIdRef.current, skipping');
+      return;
+    }
+    console.log('syncLinks: syncing', links.length, 'links to trip', tripIdRef.current);
+    
     const { data: existing } = await supabase.from('trip_links').select('id').eq('trip_id', tripIdRef.current);
     const existingIds = new Set((existing || []).map((l: any) => l.id));
     const newIds = new Set(links.map((l) => l.id));
     const toDelete = [...existingIds].filter((id) => !newIds.has(id));
+    console.log('syncLinks: deleting', toDelete.length, 'old links');
     if (toDelete.length) await supabase.from('trip_links').delete().in('id', toDelete);
+    
     for (const link of links) {
-      await supabase.from('trip_links').upsert({ id: link.id, trip_id: tripIdRef.current!, title: link.title, url: link.url }, { onConflict: 'id' });
+      console.log('syncLinks: upserting link:', link.title, link.url);
+      const { error } = await supabase.from('trip_links').upsert({ id: link.id, trip_id: tripIdRef.current!, title: link.title, url: link.url }, { onConflict: 'id' });
+      if (error) console.error('syncLinks: error:', error);
     }
+    console.log('syncLinks: done');
   }
 
   return {
