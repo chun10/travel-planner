@@ -363,7 +363,6 @@ function MainApp({
         <ShareModal
           tripId={tripId}
           tripName={tripName}
-          isOwner={true}
           onClose={() => setShowShareModal(false)}
         />
       )}
