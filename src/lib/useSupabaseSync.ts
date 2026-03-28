@@ -233,14 +233,29 @@ export function useSupabaseSync(initialDays: any[], initialTripLinks: TripLink[]
 
       console.log('Loaded from Supabase - days:', supaDays.length, 'events:', eventRows.length);
 
-      // Use Supabase data if it exists, otherwise sync local data to Supabase
-      if (supaDays.length > 0) {
+      // Check if localStorage has data (user might have made changes)
+      const localRaw = localStorage.getItem(STORAGE_KEY);
+      let localHasData = false;
+      if (localRaw) {
+        try {
+          const parsed = JSON.parse(localRaw);
+          localHasData = !!(parsed.days && parsed.days.length > 0);
+        } catch {}
+      }
+
+      // Only use Supabase data if localStorage is EMPTY
+      // This prevents overwriting local changes that haven't synced yet
+      if (supaDays.length > 0 && !localHasData) {
         setTripName(trip.name);
         setDays(supaDays);
         setTripLinks(supaLinks);
         setSelectedDayId(supaDays[0]?.id || '');
         saveToLocalStorage({ tripName: trip.name, days: supaDays, tripLinks: supaLinks, selectedDayId: supaDays[0]?.id || '' });
-        console.log('Using Supabase data');
+        console.log('Using Supabase data (localStorage was empty)');
+      } else if (supaDays.length > 0 && localHasData) {
+        // localStorage has data - sync it TO Supabase to ensure consistency
+        console.log('localStorage has data, syncing to Supabase...');
+        await syncAllToSupabase(trip.id);
       } else {
         console.log('No days in Supabase, syncing local data...');
         await syncAllToSupabase(trip.id);
