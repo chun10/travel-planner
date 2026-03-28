@@ -245,11 +245,16 @@ export function useSupabaseSync(initialDays: any[], initialTripLinks: TripLink[]
 
       // Trip exists in Supabase
       tripIdRef.current = trip.id;
+      console.log('Loading trip from Supabase:', trip.id);
 
       // ── ALWAYS load from Supabase to ensure all devices see the same data ──
       // localStorage is only used as initial fallback / for offline
-      const { data: dayRows } = await supabase
+      const { data: dayRows, error: dayError } = await supabase
         .from('trip_days').select('*').eq('trip_id', trip.id).order('sort_order', { ascending: true });
+
+      if (dayError) {
+        console.error('Error loading days:', dayError);
+      }
 
       const dayIds = (dayRows || []).map((d: any) => d.id);
       let eventRows: DayEventRow[] = [];
@@ -265,13 +270,18 @@ export function useSupabaseSync(initialDays: any[], initialTripLinks: TripLink[]
       const supaDays = (dayRows || []).map((row: TripDayRow) => mapDayRow(row, eventRows));
       const supaLinks = (linkRows as TripLinkRow[] || []).map((r) => ({ id: r.id, title: r.title, url: r.url }));
 
+      console.log('Loaded from Supabase - days:', supaDays.length, 'events:', eventRows.length);
+
+      // Always use Supabase data if it exists, otherwise sync current data to Supabase
       if (supaDays.length > 0) {
         setTripName(trip.name);
         setDays(supaDays);
         setTripLinks(supaLinks);
         setSelectedDayId(supaDays[0]?.id || '');
         saveToLocalStorage({ tripName: trip.name, days: supaDays, tripLinks: supaLinks, selectedDayId: supaDays[0]?.id || '' });
+        console.log('Using Supabase data');
       } else {
+        console.log('No days in Supabase, syncing local data...');
         await syncAllToSupabase(trip.id);
       }
     } catch (e) {
@@ -369,7 +379,10 @@ export function useSupabaseSync(initialDays: any[], initialTripLinks: TripLink[]
   const updateDays = useCallback((updater: React.SetStateAction<ItineraryDay[]>) => {
     setDays((prev) => {
       const next = typeof updater === 'function' ? (updater as (p: ItineraryDay[]) => ItineraryDay[])(prev) : updater;
-      if (tripIdRef.current) syncDays(next);
+      if (tripIdRef.current) {
+        // Fire sync but don't wait - state updates immediately
+        syncDays(next).then(() => console.log('Days synced to Supabase')).catch(err => console.error('Sync failed:', err));
+      }
       return next;
     });
   }, []);
@@ -377,7 +390,9 @@ export function useSupabaseSync(initialDays: any[], initialTripLinks: TripLink[]
   const updateTripLinks = useCallback((updater: React.SetStateAction<TripLink[]>) => {
     setTripLinks((prev) => {
       const next = typeof updater === 'function' ? (updater as (p: TripLink[]) => TripLink[])(prev) : updater;
-      if (tripIdRef.current) syncLinks(next);
+      if (tripIdRef.current) {
+        syncLinks(next).then(() => console.log('Links synced to Supabase')).catch(err => console.error('Sync failed:', err));
+      }
       return next;
     });
   }, []);
