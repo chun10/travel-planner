@@ -7,7 +7,7 @@ import type { DayEvent, ItineraryDay, EventLink, TransportMode, EventType } from
 
 const STORAGE_KEY = 'trip-planner-data';
 const TRIP_ID_KEY = 'trip-planner-trip-id';
-const SYNC_TIMEOUT = 8000; // 8 seconds max for any Supabase call
+const SYNC_TIMEOUT = 15000; // 15 seconds max for any Supabase call
 
 /** Wrap any thenable with a timeout */
 function withTimeout<T>(promise: PromiseLike<T>, ms: number): Promise<T> {
