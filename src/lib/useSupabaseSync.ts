@@ -200,6 +200,7 @@ export function useSupabaseSync(initialDays: any[], initialTripLinks: TripLink[]
       let tripId = urlTripId || localStorage.getItem(TRIP_ID_KEY);
       let trip: TripRow | null = null;
 
+      // If URL has trip ID, load that trip (don't check ownership)
       if (tripId) {
         try {
           const tripResult = await withTimeout(
@@ -216,8 +217,8 @@ export function useSupabaseSync(initialDays: any[], initialTripLinks: TripLink[]
         }
       }
 
-      if (!trip) {
-        // No URL trip, no local trip - check if user has any owned trip
+      // Only check for owned trips if NO URL trip and NO local trip
+      if (!trip && !urlTripId) {
         const { data: trips } = await supabase
           .from('trips').select('*').eq('owner_id', user.id)
           .order('created_at', { ascending: true }).limit(1);
