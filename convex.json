@@ -1,4 +1,6 @@
 {
+  "team": "tsou26801819",
+  "project": "travel-planner",
   "generates": {
     "./convex/_generated/api.ts": {
       "strict": true
