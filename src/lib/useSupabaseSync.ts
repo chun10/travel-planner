@@ -195,6 +195,30 @@ export function useSupabaseSync(initialDays: any[], initialTripLinks: TripLink[]
         } catch {}
       }
 
+      // If URL has trip ID, verify user has access (as owner OR collaborator)
+      if (urlTripId) {
+        // Check if user owns this trip
+        const { data: ownerTrip } = await supabase
+          .from('trips').select('id').eq('id', urlTripId).eq('owner_id', user.id).single();
+        
+        if (ownerTrip) {
+          // User owns this trip - OK
+        } else {
+          // Check if user is a collaborator
+          const { data: collab } = await supabase
+            .from('trip_collaborators').select('trip_id').eq('trip_id', urlTripId).eq('user_id', user.id).single();
+          
+          if (!collab) {
+            // User has no access - clear the URL trip ID
+            urlTripId = null;
+            // Clear URL without reload
+            if (typeof window !== 'undefined') {
+              window.history.replaceState({}, '', window.location.pathname);
+            }
+          }
+        }
+      }
+
       // Find existing trip in Supabase
       let tripId = urlTripId || localStorage.getItem(TRIP_ID_KEY);
       let trip: TripRow | null = null;
@@ -216,12 +240,36 @@ export function useSupabaseSync(initialDays: any[], initialTripLinks: TripLink[]
       }
 
       if (!trip) {
-        const { data: trips } = await supabase
-          .from('trips').select('*').eq('owner_id', user.id)
-          .order('created_at', { ascending: true }).limit(1);
-        if (trips && trips.length > 0) {
-          trip = trips[0] as TripRow;
-          localStorage.setItem(TRIP_ID_KEY, trip.id);
+        // First, check if user is a collaborator on any trip
+        const { data: collabRows } = await supabase
+          .from('trip_collaborators')
+          .select('trip_id')
+          .eq('user_id', user.id)
+          .limit(1);
+
+        if (collabRows && collabRows.length > 0) {
+          // User is a collaborator - load that trip
+          const collabTripId = collabRows[0].trip_id;
+          const collabResult = await withTimeout(
+            supabase.from('trips').select('*').eq('id', collabTripId).single(),
+            SYNC_TIMEOUT
+          );
+          const collabData = (collabResult as any).data;
+          if (collabData) {
+            trip = collabData as TripRow;
+            localStorage.setItem(TRIP_ID_KEY, trip.id);
+          }
+        }
+
+        // If not a collaborator, check owned trips
+        if (!trip) {
+          const { data: trips } = await supabase
+            .from('trips').select('*').eq('owner_id', user.id)
+            .order('created_at', { ascending: true }).limit(1);
+          if (trips && trips.length > 0) {
+            trip = trips[0] as TripRow;
+            localStorage.setItem(TRIP_ID_KEY, trip.id);
+          }
         }
       }
 
