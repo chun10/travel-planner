@@ -280,7 +280,6 @@ function MainApp({
                 <Cloud size={16} />
               </span>
             )}
-            <button onClick={() => setShowShareModal(true)} className="hover:bg-slate-100 p-2 rounded-full transition-colors text-slate-500"><Users size={20} /></button>
             <button onClick={() => setShowShareModal(true)} className="hover:bg-slate-100 p-2 rounded-full transition-colors text-slate-500"><Share2 size={20} /></button>
 
             {/* User avatar / menu */}
