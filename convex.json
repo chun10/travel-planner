@@ -1,4 +1,7 @@
 {
-  "node": "20",
-  "generateCommonJSApi": true
+  "generates": {
+    "./convex/_generated/api.ts": {
+      "strict": true
+    }
+  }
 }

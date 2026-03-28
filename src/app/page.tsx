@@ -6,7 +6,7 @@ import LoginScreen from '../components/LoginScreen';
 import ShareModal from '../components/ShareModal';
 import { initialItinerary } from '../lib/mockData';
 import { DayEvent, ItineraryDay } from '../lib/types';
-import { useSupabaseSync } from '../lib/useSupabaseSync';
+import { useConvexSync } from '../lib/useConvexSync';
 import { useAuth } from '../lib/AuthContext';
 import { MapPin, Users, Share2, Plus, Edit2, Check, X, LogOut, Cloud, CloudOff } from 'lucide-react';
 
@@ -17,48 +17,14 @@ const defaultTripLinks = [
 ];
 
 export default function Home() {
-  const { user, profile, loading, isConfigured, signOut } = useAuth();
-  const [offlineMode, setOfflineMode] = useState(false);
-
-  // If offline mode is enabled, skip auth and show main app
-  if (offlineMode) {
-    return (
-      <MainApp
-        user={null}
-        displayName="離線模式"
-        avatarUrl={null}
-        isConfigured={false}
-        onSignOut={async () => setOfflineMode(false)}
-      />
-    );
-  }
-
-  // If Supabase is configured and auth is loading, show loading
-  if (isConfigured && loading) {
-    return (
-      <div className="flex justify-center items-center w-full min-h-screen bg-slate-100 font-sans">
-        <div className="flex flex-col items-center gap-3">
-          <MapPin className="text-blue-600 animate-pulse" size={40} />
-          <span className="text-slate-500 font-bold text-sm">載入中...</span>
-        </div>
-      </div>
-    );
-  }
-
-  // If Supabase is configured but user is not logged in, show login or guest option
-  if (isConfigured && !user) {
-    return <LoginScreen onGuestMode={() => setOfflineMode(true)} />;
-  }
-
-  return (
-    <MainApp
-      user={user}
-      displayName={profile?.display_name || user?.user_metadata?.full_name || user?.email || null}
-      avatarUrl={profile?.avatar_url || user?.user_metadata?.avatar_url || null}
-      isConfigured={isConfigured}
-      onSignOut={signOut}
-    />
-  );
+  // Using Convex - no auth required
+  return <MainApp
+    user={null}
+    displayName="旅遊規劃"
+    avatarUrl={null}
+    isConfigured={false}
+    onSignOut={async () => {}}
+  />;
 }
 
 function MainApp({
@@ -81,8 +47,7 @@ function MainApp({
     tripLinks, setTripLinks,
     selectedDayId, setSelectedDayId,
     tripId,
-    forceSyncTripLinks,
-  } = useSupabaseSync(initialItinerary, defaultTripLinks);
+  } = useConvexSync(initialItinerary, defaultTripLinks);
 
   const [isEditingTripName, setIsEditingTripName] = useState(false);
   const [tripNameInput, setTripNameInput] = useState('');
@@ -359,10 +324,6 @@ function MainApp({
               onAddTripLink={handleAddTripLink}
               onUpdateTripLink={handleUpdateTripLink}
               onDeleteTripLink={handleDeleteTripLink}
-              onSaveTripLinks={() => {
-                // Force immediate sync when editing is done
-                forceSyncTripLinks(tripLinks);
-              }}
             />
           ) : (
             <div className="flex flex-col items-center justify-center h-full gap-3 text-slate-400">
