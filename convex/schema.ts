@@ -1,35 +1,36 @@
 import { defineSchema, defineTable } from 'convex/server';
+import { v } from 'convex/values';
 
 export default defineSchema({
   trips: defineTable({
-    name: 'string',
-    ownerId: 'string',
-    createdAt: 'number',
+    name: v.string(),
+    ownerId: v.string(),
+    createdAt: v.number(),
   }).index('ownerId', ['ownerId']),
 
   tripDays: defineTable({
-    tripId: 'string',
-    date: 'string',
-    title: 'string',
-    notes: 'string',
-    sortOrder: 'number',
+    tripId: v.string(),
+    date: v.string(),
+    title: v.string(),
+    notes: v.string(),
+    sortOrder: v.number(),
   }).index('tripId', ['tripId']),
 
   dayEvents: defineTable({
-    dayId: 'string',
-    time: 'string',
-    locationName: 'string',
-    coordinates: 'any',
-    description: 'string',
-    eventType: 'string',
-    transportToNext: 'any',
-    links: 'any',
-    sortOrder: 'number',
+    dayId: v.string(),
+    time: v.string(),
+    locationName: v.string(),
+    coordinates: v.any(),
+    description: v.string(),
+    eventType: v.string(),
+    transportToNext: v.any(),
+    links: v.any(),
+    sortOrder: v.number(),
   }).index('dayId', ['dayId']),
 
   tripLinks: defineTable({
-    tripId: 'string',
-    title: 'string',
-    url: 'string',
+    tripId: v.string(),
+    title: v.string(),
+    url: v.string(),
   }).index('tripId', ['tripId']),
 });
