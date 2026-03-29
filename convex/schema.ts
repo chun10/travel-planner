@@ -18,14 +18,14 @@ export default defineSchema({
 
   dayEvents: defineTable({
     dayId: v.string(),
-    time: v.string(),
+    time: v.optional(v.string()),
     locationName: v.string(),
-    coordinates: v.any(),
-    description: v.string(),
-    eventType: v.string(),
-    transportToNext: v.any(),
-    links: v.any(),
-    sortOrder: v.number(),
+    coordinates: v.optional(v.any()),
+    description: v.optional(v.string()),
+    eventType: v.optional(v.string()),
+    transportToNext: v.optional(v.any()),
+    links: v.optional(v.any()),
+    sortOrder: v.optional(v.number()),
   }).index('dayId', ['dayId']),
 
   tripLinks: defineTable({

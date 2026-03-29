@@ -53,7 +53,7 @@ export function useConvexSync(initialDays: ItineraryDay[], initialTripLinks: Tri
 
   // Query trip from Convex
   const tripData = useQuery(api.functions.getOrCreateTrip, { 
-    tripId: localStorage.getItem(TRIP_ID_KEY) || undefined 
+    tripId: (typeof window !== 'undefined' ? localStorage.getItem(TRIP_ID_KEY) : null) || undefined 
   });
 
   // When we get data from Convex, update local state
