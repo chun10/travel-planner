@@ -57,15 +57,18 @@ export function useConvexSync(initialDays: ItineraryDay[], initialTripLinks: Tri
   });
 
   // When we get data from Convex, update local state
-  // Only run once on initial load, not on every tripData change
-  const hasInitiallyLoadedRef = useRef(false);
+  // Use a timeout to debounce updates and avoid overwriting frequently
+  const lastSyncRef = useRef<number>(0);
   
   useEffect(() => {
-    if (!tripData || !isLoaded || hasInitiallyLoadedRef.current) return;
+    if (!tripData || !isLoaded) return;
+    
+    // Debounce: only sync if 1 second has passed since last sync
+    const now = Date.now();
+    if (now - lastSyncRef.current < 1000) return;
+    lastSyncRef.current = now;
     
     if (tripData.trip) {
-      hasInitiallyLoadedRef.current = true;
-      
       setTripId(tripData.trip._id);
       
       // Only update tripName if user hasn't edited it locally
@@ -95,9 +98,7 @@ export function useConvexSync(initialDays: ItineraryDay[], initialTripLinks: Tri
         setDays(mappedDays);
         // Keep user's selected day if it exists in the loaded days
         const currentSelectedExists = mappedDays.some(d => d.id === selectedDayId);
-        if (currentSelectedExists) {
-          // Keep current selection
-        } else {
+        if (!currentSelectedExists) {
           setSelectedDayId(mappedDays[0]?.id || '');
         }
       }
