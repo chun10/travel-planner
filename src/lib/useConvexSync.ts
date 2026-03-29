@@ -57,51 +57,62 @@ export function useConvexSync(initialDays: ItineraryDay[], initialTripLinks: Tri
   });
 
   // When we get data from Convex, update local state
+  // Only run once on initial load, not on every tripData change
+  const hasInitiallyLoadedRef = useRef(false);
+  
   useEffect(() => {
-    if (tripData && isLoaded) {
-      if (tripData.trip) {
-        setTripId(tripData.trip._id);
-        setTripName(tripData.trip.name);
-        
-        if (tripData.days && tripData.days.length > 0) {
-          const mappedDays = tripData.days.map((d: any) => ({
-            id: d._id,
-            date: d.date,
-            title: d.title,
-            notes: d.notes || '',
-            events: (d.events || []).map((e: any) => ({
-              id: e._id,
-              time: e.time,
-              locationName: e.locationName,
-              coordinates: e.coordinates,
-              description: e.description,
-              eventType: e.eventType,
-              transportToNext: e.transportToNext,
-              links: e.links || [],
-            })),
-          }));
-          setDays(mappedDays);
+    if (!tripData || !isLoaded || hasInitiallyLoadedRef.current) return;
+    
+    if (tripData.trip) {
+      hasInitiallyLoadedRef.current = true;
+      
+      setTripId(tripData.trip._id);
+      setTripName(tripData.trip.name);
+      
+      if (tripData.days && tripData.days.length > 0) {
+        const mappedDays = tripData.days.map((d: any) => ({
+          id: d._id,
+          date: d.date,
+          title: d.title,
+          notes: d.notes || '',
+          events: (d.events || []).map((e: any) => ({
+            id: e._id,
+            time: e.time,
+            locationName: e.locationName,
+            coordinates: e.coordinates,
+            description: e.description,
+            eventType: e.eventType,
+            transportToNext: e.transportToNext,
+            links: e.links || [],
+          })),
+        }));
+        setDays(mappedDays);
+        // Keep user's selected day if it exists in the loaded days
+        const currentSelectedExists = mappedDays.some(d => d.id === selectedDayId);
+        if (currentSelectedExists) {
+          // Keep current selection
+        } else {
           setSelectedDayId(mappedDays[0]?.id || '');
         }
-        
-        if (tripData.tripLinks) {
-          setTripLinks(tripData.tripLinks.map((l: any) => ({
-            id: l._id,
-            title: l.title,
-            url: l.url,
-          })));
-        }
-
-        // Save to localStorage
-        localStorage.setItem(STORAGE_KEY, JSON.stringify({
-          tripName: tripData.trip.name,
-          days: tripData.days,
-          tripLinks: tripData.tripLinks,
-          selectedDayId: tripData.days?.[0]?._id,
-        }));
       }
+      
+      if (tripData.tripLinks) {
+        setTripLinks(tripData.tripLinks.map((l: any) => ({
+          id: l._id,
+          title: l.title,
+          url: l.url,
+        })));
+      }
+
+      // Save to localStorage
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({
+        tripName: tripData.trip.name,
+        days: tripData.days,
+        tripLinks: tripData.tripLinks,
+        selectedDayId: tripData.days?.[0]?._id,
+      }));
     }
-  }, [tripData, isLoaded]);
+  }, [tripData, isLoaded, selectedDayId]);
 
   // Save mutation
   const saveTrip = useMutation(api.functions.saveTrip);
