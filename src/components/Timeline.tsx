@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, memo } from 'react';
 import { ItineraryDay, TransportMode, EventLink, DayEvent, EventType } from '../lib/types';
 import { 
   MapPin, 
@@ -83,7 +83,7 @@ const getEventIconProps = (type: EventType = 'default') => {
   }
 };
 
-export default function Timeline({ 
+function Timeline({ 
   day, 
   onUpdateEvent, 
   onAddEvent, 
@@ -847,3 +847,19 @@ export default function Timeline({
     </div>
   );
 }
+
+// Use memo to prevent unnecessary re-renders
+// Only re-render when day data or tripLinks actually change
+export default memo(Timeline, (prev, next) => {
+  // Re-render if day data changes
+  if (prev.day?.id !== next.day?.id) return false;
+  if (prev.day?.title !== next.day?.title) return false;
+  if (prev.day?.date !== next.day?.date) return false;
+  if (prev.day?.notes !== next.day?.notes) return false;
+  if (prev.day?.events?.length !== next.day?.events?.length) return false;
+  
+  // Re-render if tripLinks change
+  if (prev.tripLinks?.length !== next.tripLinks?.length) return false;
+  
+  return true;
+});
