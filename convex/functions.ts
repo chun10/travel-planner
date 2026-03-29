@@ -155,63 +155,71 @@ export const saveTrip = mutation({
         ownerId: 'anonymous',
         createdAt: Date.now(),
       });
-    }
-
-    // Delete old days and events
-    const oldDays = await ctx.db
-      .query('tripDays')
-      .withIndex('tripId', (q) => q.eq('tripId', tripId))
-      .collect();
-    
-    for (const day of oldDays) {
-      const events = await ctx.db
-        .query('dayEvents')
-        .withIndex('dayId', (q) => q.eq('dayId', day._id))
-        .collect();
-      for (const e of events) await ctx.db.delete(e._id);
-      await ctx.db.delete(day._id);
-    }
-
-    // Delete old links
-    const oldLinks = await ctx.db
-      .query('tripLinks')
-      .withIndex('tripId', (q) => q.eq('tripId', tripId))
-      .collect();
-    for (const l of oldLinks) await ctx.db.delete(l._id);
-
-    // Insert new days
-    for (const day of args.days) {
-      const dayId = await ctx.db.insert('tripDays', {
-        tripId: tripId,
-        date: day.date,
-        title: day.title,
-        notes: day.notes,
-        sortOrder: day.sortOrder,
-      });
-
-      // Insert events
-      for (const event of day.events) {
-        await ctx.db.insert('dayEvents', {
-          dayId,
-          time: event.time,
-          locationName: event.locationName,
-          coordinates: event.coordinates,
-          description: event.description,
-          eventType: event.eventType || 'default',
-          transportToNext: event.transportToNext,
-          links: event.links || [],
-          sortOrder: event.sortOrder,
-        });
+    } else {
+      // Update existing trip name
+      const normalizedTripId = ctx.db.normalizeId('trips', tripId);
+      if (normalizedTripId) {
+        await ctx.db.patch(normalizedTripId, { name: args.name });
       }
     }
 
-    // Insert links
-    for (const link of args.tripLinks) {
-      await ctx.db.insert('tripLinks', {
-        tripId,
-        title: link.title,
-        url: link.url,
-      });
+    // Only update days/links if provided (not empty arrays)
+    if (args.days && args.days.length > 0) {
+      const oldDays = await ctx.db
+        .query('tripDays')
+        .withIndex('tripId', (q) => q.eq('tripId', tripId))
+        .collect();
+      
+      for (const day of oldDays) {
+        const events = await ctx.db
+          .query('dayEvents')
+          .withIndex('dayId', (q) => q.eq('dayId', day._id))
+          .collect();
+        for (const e of events) await ctx.db.delete(e._id);
+        await ctx.db.delete(day._id);
+      }
+
+      // Delete old links
+      const oldLinks = await ctx.db
+        .query('tripLinks')
+        .withIndex('tripId', (q) => q.eq('tripId', tripId))
+        .collect();
+      for (const l of oldLinks) await ctx.db.delete(l._id);
+
+      // Insert new days
+      for (const day of args.days) {
+        const dayId = await ctx.db.insert('tripDays', {
+          tripId: tripId,
+          date: day.date,
+          title: day.title,
+          notes: day.notes,
+          sortOrder: day.sortOrder,
+        });
+
+        // Insert events
+        for (const event of day.events) {
+          await ctx.db.insert('dayEvents', {
+            dayId,
+            time: event.time,
+            locationName: event.locationName,
+            coordinates: event.coordinates,
+            description: event.description,
+            eventType: event.eventType || 'default',
+            transportToNext: event.transportToNext,
+            links: event.links || [],
+            sortOrder: event.sortOrder,
+          });
+        }
+      }
+
+      // Insert links
+      for (const link of args.tripLinks) {
+        await ctx.db.insert('tripLinks', {
+          tripId,
+          title: link.title,
+          url: link.url,
+        });
+      }
     }
 
     return tripId;

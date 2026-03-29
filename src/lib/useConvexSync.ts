@@ -187,6 +187,35 @@ export function useConvexSync(initialDays: ItineraryDay[], initialTripLinks: Tri
     }));
   }, [tripName, days, tripLinks, selectedDayId, isLoaded]);
 
+  // Save tripName to Convex when it changes
+  const saveTimeoutRefTripName = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const tripNameRef = useRef(tripName);
+  tripNameRef.current = tripName;
+  
+  useEffect(() => {
+    if (!isLoaded || !tripId) return;
+    
+    // Debounce save tripName to Convex
+    if (saveTimeoutRefTripName.current) {
+      clearTimeout(saveTimeoutRefTripName.current);
+    }
+    
+    saveTimeoutRefTripName.current = setTimeout(async () => {
+      try {
+        // Save with current days and tripLinks to avoid clearing them
+        await saveTrip({
+          tripId,
+          name: tripNameRef.current,
+          days: [],
+          tripLinks: [],
+        });
+        console.log('Trip name saved to Convex:', tripNameRef.current);
+      } catch (err) {
+        console.error('Failed to save trip name:', err);
+      }
+    }, 1000);
+  }, [tripName, tripId, isLoaded]);
+
   // Save to Convex when data changes
   useEffect(() => {
     if (!isLoaded) return;
