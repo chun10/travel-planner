@@ -118,14 +118,29 @@ function Timeline({
   const [editingTransportEventId, setEditingTransportEventId] = useState<string | null>(null);
   const [transportForm, setTransportForm] = useState<Partial<NonNullable<DayEvent['transportToNext']>>>({});
 
-  const [expandedIds, setExpandedIds] = useState<string[]>([]);
+// Use ref + localStorage to persist expanded state
+  const expandedIdsRef = useRef<string[]>([]);
+  const [expandedIds, setExpandedIds] = useState<string[]>(() => {
+    if (typeof window === 'undefined') return [];
+    try {
+      const saved = localStorage.getItem('trip-expanded-ids');
+      return saved ? JSON.parse(saved) : [];
+    } catch { return []; }
+  });
   const [editingTripLinkIds, setEditingTripLinkIds] = useState<Set<string>>(new Set());
   const prevTripLinksLength = useRef(tripLinks.length);
 
-  // Auto-start editing for newly added links
+  // Save to localStorage whenever expandedIds changes
+  const saveExpandedIds = (ids: string[]) => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('trip-expanded-ids', JSON.stringify(ids));
+    }
+    expandedIdsRef.current = ids;
+  };
+  
+// Auto-start editing for newly added links
   React.useEffect(() => {
     if (tripLinks.length > prevTripLinksLength.current) {
-      // A new link was added - find it and start editing
       const newLink = tripLinks[tripLinks.length - 1];
       if (newLink && !newLink.title && !newLink.url) {
         setEditingTripLinkIds(prev => new Set(prev).add(newLink.id));
@@ -135,7 +150,11 @@ function Timeline({
   }, [tripLinks.length]);
 
   const toggleExpand = (id: string) => {
-    setExpandedIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+    const newIds = expandedIds.includes(id) 
+      ? expandedIds.filter(x => x !== id) 
+      : [...expandedIds, id];
+    setExpandedIds(newIds);
+    saveExpandedIds(newIds);
   };
 
   const startEditingTripLink = (id: string) => {
@@ -148,12 +167,11 @@ function Timeline({
       next.delete(id);
       return next;
     });
-    // Trigger sync when editing is done
     if (onSaveTripLinks) {
       onSaveTripLinks();
     }
   };
-
+  
   React.useEffect(() => {
     setTitleInput(day.title);
     setDateInput(day.date);
