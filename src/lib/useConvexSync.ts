@@ -6,7 +6,6 @@ import { api } from '../../convex/_generated/api';
 import type { ItineraryDay } from './types';
 
 const TRIP_ID_KEY = 'trip-planner-trip-id';
-const AUTO_SAVE_INTERVAL = 30000; // 30 seconds
 
 interface TripLink {
   id: string;
@@ -22,7 +21,9 @@ export function useConvexSync(initialDays: ItineraryDay[], initialTripLinks: Tri
   const [selectedDayId, setSelectedDayId] = useState(initialDays[0]?.id || '');
   const [tripId, setTripId] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
-  const [lastSaved, setLastSaved] = useState<Date | null>(null);
+  
+  // Edit mode - user can edit locally, then save to Convex manually
+  const [isEditing, setIsEditing] = useState(false);
 
   // Get trip ID
   const getTripId = () => {
@@ -87,11 +88,11 @@ export function useConvexSync(initialDays: ItineraryDay[], initialTripLinks: Tri
   // Save mutation
   const saveTrip = useMutation(api.functions.saveTrip);
 
-  // Save to Convex
-  const saveToConvex = useCallback(async (showStatus = true) => {
+  // Save to Convex (for edit mode)
+  const saveToConvex = useCallback(async () => {
     if (!tripId || isSaving) return;
     
-    if (showStatus) setIsSaving(true);
+    setIsSaving(true);
     
     try {
       await saveTrip({
@@ -122,26 +123,26 @@ export function useConvexSync(initialDays: ItineraryDay[], initialTripLinks: Tri
         })),
       });
       
-      setLastSaved(new Date());
-      console.log('Saved to Convex at', new Date().toLocaleTimeString());
+      console.log('Saved to Convex');
+      setIsEditing(false); // Exit edit mode after save
     } catch (err) {
       console.error('Failed to save to Convex:', err);
     }
     
-    if (showStatus) setIsSaving(false);
+    setIsSaving(false);
   }, [tripId, tripName, days, tripLinks, saveTrip, isSaving]);
 
-  // Auto-save every 30 seconds
-  useEffect(() => {
-    if (!isLoaded || !tripId) return;
-    
-    const interval = setInterval(() => {
-      console.log('Auto-saving...');
-      saveToConvex(false);
-    }, AUTO_SAVE_INTERVAL);
-    
-    return () => clearInterval(interval);
-  }, [isLoaded, tripId, saveToConvex]);
+  // Enter edit mode
+  const enterEditMode = useCallback(() => {
+    setIsEditing(true);
+  }, []);
+
+  // Cancel edit mode (revert to saved state)
+  const cancelEdit = useCallback(() => {
+    setIsEditing(false);
+    // Reload from Convex - simple way is page refresh
+    window.location.reload();
+  }, []);
 
   // Wrappers
   const updateDays = useCallback((updater: React.SetStateAction<ItineraryDay[]>) => {
@@ -156,15 +157,10 @@ export function useConvexSync(initialDays: ItineraryDay[], initialTripLinks: Tri
     setTripName(name);
   }, []);
 
-  // Manual save button (optional)
-  const manualSave = useCallback(() => {
-    saveToConvex(true);
-  }, [saveToConvex]);
-
   return {
     isLoaded,
     isSaving,
-    lastSaved,
+    isEditing,         // Edit mode state
     tripName,
     setTripName: updateTripName,
     days,
@@ -174,6 +170,8 @@ export function useConvexSync(initialDays: ItineraryDay[], initialTripLinks: Tri
     selectedDayId,
     setSelectedDayId,
     tripId,
-    manualSave,  // Manual save button
+    enterEditMode,     // Click to enter edit mode
+    saveToConvex,       // Click to save after editing
+    cancelEdit,        // Click to cancel and reload
   };
 }

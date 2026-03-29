@@ -41,11 +41,16 @@ function MainApp({
 }) {
   const {
     isLoaded,
+    isSaving,
+    isEditing,
     tripName, setTripName,
     days, setDays,
     tripLinks, setTripLinks,
     selectedDayId, setSelectedDayId,
     tripId,
+    enterEditMode,
+    saveToConvex,
+    cancelEdit,
   } = useConvexSync(initialItinerary, defaultTripLinks);
 
   const [isEditingTripName, setIsEditingTripName] = useState(false);
@@ -243,6 +248,36 @@ function MainApp({
               <span className="text-green-500" title="雲端同步中">
                 <Cloud size={16} />
               </span>
+            )}
+            {/* Edit mode toggle */}
+            {isLoaded && (
+              isEditing ? (
+                <div className="flex gap-1">
+                  <button 
+                    onClick={saveToConvex}
+                    disabled={isSaving}
+                    className="flex items-center gap-1 px-3 py-2 bg-green-600 text-white rounded-full text-sm font-bold hover:bg-green-700 transition-colors disabled:opacity-50"
+                  >
+                    <Check size={16} />
+                    {isSaving ? '儲存中...' : '儲存'}
+                  </button>
+                  <button 
+                    onClick={cancelEdit}
+                    className="flex items-center gap-1 px-3 py-2 bg-slate-200 text-slate-700 rounded-full text-sm font-bold hover:bg-slate-300 transition-colors"
+                  >
+                    <X size={16} />
+                    取消
+                  </button>
+                </div>
+              ) : (
+                <button 
+                  onClick={enterEditMode}
+                  className="flex items-center gap-1 px-3 py-2 bg-blue-600 text-white rounded-full text-sm font-bold hover:bg-blue-700 transition-colors"
+                >
+                  <Edit2 size={16} />
+                  編輯
+                </button>
+              )
             )}
             <button onClick={() => setShowShareModal(true)} className="hover:bg-slate-100 p-2 rounded-full transition-colors text-slate-500"><Share2 size={20} /></button>
 
