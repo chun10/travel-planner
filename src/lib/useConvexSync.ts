@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useQuery, useMutation } from 'convex/react';
-import { api } from '@/convex/_generated/api';
+import { api } from '../../convex/_generated/api';
 import type { ItineraryDay, DayEvent } from './types';
 
 const STORAGE_KEY = 'trip-planner-data';
@@ -122,13 +122,13 @@ export function useConvexSync(initialDays: ItineraryDay[], initialTripLinks: Tri
           tripId: tripId || undefined,
           name: tripName,
           days: newDays.map(d => ({
-            _id: d.id,
+            id: d.id,
             date: d.date,
             title: d.title,
             notes: d.notes || '',
             sortOrder: 0,
             events: d.events.map(e => ({
-              _id: e.id,
+              id: e.id,
               time: e.time,
               locationName: e.locationName,
               coordinates: e.coordinates,
@@ -140,7 +140,7 @@ export function useConvexSync(initialDays: ItineraryDay[], initialTripLinks: Tri
             })),
           })),
           tripLinks: newLinks.map(l => ({
-            _id: l.id,
+            id: l.id,
             title: l.title,
             url: l.url,
           })),

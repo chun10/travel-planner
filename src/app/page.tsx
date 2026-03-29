@@ -2,13 +2,12 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import Timeline from '../components/Timeline';
-import LoginScreen from '../components/LoginScreen';
 import ShareModal from '../components/ShareModal';
 import { initialItinerary } from '../lib/mockData';
 import { DayEvent, ItineraryDay } from '../lib/types';
 import { useConvexSync } from '../lib/useConvexSync';
 import { useAuth } from '../lib/AuthContext';
-import { MapPin, Users, Share2, Plus, Edit2, Check, X, LogOut, Cloud, CloudOff } from 'lucide-react';
+import { MapPin, Share2, Plus, Edit2, Check, X, LogOut, Cloud } from 'lucide-react';
 
 const defaultTripLinks = [
   { id: 'link-vjw', title: 'Visit Japan Web', url: 'https://vjw-lp.digital.go.jp/zh-hant/' },

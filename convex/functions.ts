@@ -1,12 +1,75 @@
 import { query, mutation } from './_generated/server';
 import { v } from 'convex/values';
 
+// Get or create trip with all related data
+export const getOrCreateTrip = query({
+  args: { tripId: v.optional(v.string()) },
+  handler: async (ctx, args) => {
+    let trip = null;
+    
+    // Try to get existing trip
+    if (args.tripId) {
+      // Normalize the string ID to a Convex Id
+      const normalizedId = ctx.db.normalizeId('trips', args.tripId);
+      if (normalizedId) {
+        trip = await ctx.db.get(normalizedId);
+      }
+    }
+    
+    // If no trip found, get the first trip (for anonymous users)
+    if (!trip) {
+      const trips = await ctx.db
+        .query('trips')
+        .order('desc')
+        .take(1);
+      trip = trips[0] || null;
+    }
+    
+    if (!trip) {
+      return { trip: null, days: [], tripLinks: [] };
+    }
+    
+    // Get days for this trip
+    const days = await ctx.db
+      .query('tripDays')
+      .withIndex('tripId', (q) => q.eq('tripId', trip._id))
+      .order('asc')
+      .collect();
+    
+    // Get events for each day
+    const daysWithEvents = await Promise.all(
+      days.map(async (day) => {
+        const events = await ctx.db
+          .query('dayEvents')
+          .withIndex('dayId', (q) => q.eq('dayId', day._id))
+          .order('asc')
+          .collect();
+        return { ...day, events };
+      })
+    );
+    
+    // Get trip links
+    const tripLinks = await ctx.db
+      .query('tripLinks')
+      .withIndex('tripId', (q) => q.eq('tripId', trip._id))
+      .collect();
+    
+    return {
+      trip,
+      days: daysWithEvents,
+      tripLinks,
+    };
+  },
+});
+
 // Get trip by ID
 export const getTrip = query({
   args: { tripId: v.optional(v.string()) },
   handler: async (ctx, args) => {
     if (!args.tripId) return null;
-    return await ctx.db.get(args.tripId);
+    const normalizedId = ctx.db.normalizeId('trips', args.tripId);
+    if (!normalizedId) return null;
+    return await ctx.db.get(normalizedId);
   },
 });
 
