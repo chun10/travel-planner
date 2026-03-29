@@ -6,6 +6,7 @@ import { api } from '../../convex/_generated/api';
 import type { ItineraryDay } from './types';
 
 const TRIP_ID_KEY = 'trip-planner-trip-id';
+const AUTO_SAVE_INTERVAL = 30000; // 30 seconds
 
 interface TripLink {
   id: string;
@@ -21,6 +22,7 @@ export function useConvexSync(initialDays: ItineraryDay[], initialTripLinks: Tri
   const [selectedDayId, setSelectedDayId] = useState(initialDays[0]?.id || '');
   const [tripId, setTripId] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [lastSaved, setLastSaved] = useState<Date | null>(null);
 
   // Get trip ID
   const getTripId = () => {
@@ -36,25 +38,20 @@ export function useConvexSync(initialDays: ItineraryDay[], initialTripLinks: Tri
   
   const currentTripId = getTripId();
   
-  // Query from Convex (only on initial load, no auto-sync)
+  // Query from Convex (only on initial load)
   const tripData = useQuery(api.functions.getOrCreateTrip, { tripId: currentTripId || undefined });
 
-  // Initialize from Convex ONLY once on first load
+  // Initialize from Convex ONLY once
   const hasInitiallyLoaded = useRef(false);
   
   useEffect(() => {
     if (hasInitiallyLoaded.current || !tripData || !tripData.trip) return;
     
     hasInitiallyLoaded.current = true;
-    
-    // Set trip ID
     setTripId(tripData.trip._id);
     localStorage.setItem(TRIP_ID_KEY, tripData.trip._id);
-    
-    // Set trip name
     setTripName(tripData.trip.name);
     
-    // Set days
     if (tripData.days && tripData.days.length > 0) {
       const mappedDays = tripData.days.map((d: any) => ({
         id: d._id,
@@ -76,7 +73,6 @@ export function useConvexSync(initialDays: ItineraryDay[], initialTripLinks: Tri
       setSelectedDayId(mappedDays[0]?.id || '');
     }
     
-    // Set trip links
     if (tripData.tripLinks) {
       setTripLinks(tripData.tripLinks.map((l: any) => ({
         id: l._id,
@@ -91,11 +87,11 @@ export function useConvexSync(initialDays: ItineraryDay[], initialTripLinks: Tri
   // Save mutation
   const saveTrip = useMutation(api.functions.saveTrip);
 
-  // Manual save to Convex (user triggers this)
-  const saveToConvex = useCallback(async () => {
+  // Save to Convex
+  const saveToConvex = useCallback(async (showStatus = true) => {
     if (!tripId || isSaving) return;
     
-    setIsSaving(true);
+    if (showStatus) setIsSaving(true);
     
     try {
       await saveTrip({
@@ -126,15 +122,28 @@ export function useConvexSync(initialDays: ItineraryDay[], initialTripLinks: Tri
         })),
       });
       
-      console.log('Saved to Convex');
+      setLastSaved(new Date());
+      console.log('Saved to Convex at', new Date().toLocaleTimeString());
     } catch (err) {
       console.error('Failed to save to Convex:', err);
     }
     
-    setIsSaving(false);
+    if (showStatus) setIsSaving(false);
   }, [tripId, tripName, days, tripLinks, saveTrip, isSaving]);
 
-  // Wrappers that trigger manual save
+  // Auto-save every 30 seconds
+  useEffect(() => {
+    if (!isLoaded || !tripId) return;
+    
+    const interval = setInterval(() => {
+      console.log('Auto-saving...');
+      saveToConvex(false);
+    }, AUTO_SAVE_INTERVAL);
+    
+    return () => clearInterval(interval);
+  }, [isLoaded, tripId, saveToConvex]);
+
+  // Wrappers
   const updateDays = useCallback((updater: React.SetStateAction<ItineraryDay[]>) => {
     setDays(updater);
   }, []);
@@ -147,18 +156,15 @@ export function useConvexSync(initialDays: ItineraryDay[], initialTripLinks: Tri
     setTripName(name);
   }, []);
 
-  // Manual refresh function - user can call this to sync from Convex
-  const refreshFromConvex = useCallback(() => {
-    // Reset the flag to allow re-loading from Convex
-    hasInitiallyLoaded.current = false;
-    // Force re-query by invalidating the query
-    // This is a workaround - in practice user would refresh the page
-    window.location.reload();
-  }, []);
+  // Manual save button (optional)
+  const manualSave = useCallback(() => {
+    saveToConvex(true);
+  }, [saveToConvex]);
 
   return {
     isLoaded,
     isSaving,
+    lastSaved,
     tripName,
     setTripName: updateTripName,
     days,
@@ -168,7 +174,6 @@ export function useConvexSync(initialDays: ItineraryDay[], initialTripLinks: Tri
     selectedDayId,
     setSelectedDayId,
     tripId,
-    saveToConvex,        // User must call this to save
-    refreshFromConvex,   // User can call this to sync from Convex
+    manualSave,  // Manual save button
   };
 }
