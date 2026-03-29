@@ -67,7 +67,13 @@ export function useConvexSync(initialDays: ItineraryDay[], initialTripLinks: Tri
       hasInitiallyLoadedRef.current = true;
       
       setTripId(tripData.trip._id);
-      setTripName(tripData.trip.name);
+      
+      // Only update tripName if user hasn't edited it locally
+      // Preserve user's custom title
+      const hasUserEditedTitle = localStorage.getItem('tripNameEdited') === 'true';
+      if (!hasUserEditedTitle) {
+        setTripName(tripData.trip.name);
+      }
       
       if (tripData.days && tripData.days.length > 0) {
         const mappedDays = tripData.days.map((d: any) => ({
@@ -195,11 +201,17 @@ export function useConvexSync(initialDays: ItineraryDay[], initialTripLinks: Tri
     setTripLinks(updater);
   }, []);
 
+  const updateTripName = useCallback((name: string) => {
+    setTripName(name);
+    // Mark that user has edited the title
+    localStorage.setItem('tripNameEdited', 'true');
+  }, []);
+
   return {
     isLoaded,
     isSaving,
     tripName,
-    setTripName,
+    setTripName: updateTripName,
     days,
     setDays: updateDays,
     tripLinks,
