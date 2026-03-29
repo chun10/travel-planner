@@ -347,6 +347,7 @@ function MainApp({
           {selectedDay ? (
             <Timeline 
               day={selectedDay} 
+              isEditing={isEditing}
               onUpdateEvent={handleUpdateEvent}
               onAddEvent={handleAddEvent}
               onDeleteEvent={handleDeleteEvent}

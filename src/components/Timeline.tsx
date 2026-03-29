@@ -33,6 +33,7 @@ interface TripLink {
 
 interface TimelineProps {
   day: ItineraryDay;
+  isEditing: boolean;  // Edit mode enabled
   onUpdateEvent: (eventId: string, updatedEvent: DayEvent) => void;
   onAddEvent: () => void;
   onDeleteEvent: (eventId: string) => void;
@@ -85,6 +86,7 @@ const getEventIconProps = (type: EventType = 'default') => {
 
 function Timeline({ 
   day, 
+  isEditing,
   onUpdateEvent, 
   onAddEvent, 
   onDeleteEvent,
@@ -99,6 +101,16 @@ function Timeline({
   onSaveTripLinks
 }: TimelineProps) {
   if (!day) return null;
+
+  // Protection: If not in edit mode, treat all edit handlers as no-ops
+  const safeUpdateEvent = isEditing ? onUpdateEvent : () => {};
+  const safeAddEvent = isEditing ? onAddEvent : () => {};
+  const safeDeleteEvent = isEditing ? onDeleteEvent : () => {};
+  const safeDeleteDay = isEditing ? onDeleteDay : () => {};
+  const safeUpdateDayTitle = isEditing ? onUpdateDayTitle : () => {};
+  const safeUpdateDayDate = isEditing ? onUpdateDayDate : () => {};
+  const safeUpdateDayNotes = isEditing ? onUpdateDayNotes : () => {};
+  const safeAddTripLink = isEditing ? onAddTripLink : () => {};
 
   // Tabs state
   const [viewMode, setViewMode] = useState<'itinerary' | 'notes'>('itinerary');
