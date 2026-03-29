@@ -60,6 +60,17 @@ export function useConvexSync(initialDays: ItineraryDay[], initialTripLinks: Tri
   // Use a timeout to debounce updates and avoid overwriting frequently
   const lastSyncRef = useRef<number>(0);
   
+  // Helper: compare if days are effectively the same
+  const areDaysEqual = (a: ItineraryDay[], b: ItineraryDay[]) => {
+    if (a.length !== b.length) return false;
+    return a.every((day, i) => 
+      day.id === b[i]?.id && 
+      day.title === b[i]?.title &&
+      day.date === b[i]?.date &&
+      day.events.length === b[i]?.events.length
+    );
+  };
+  
   useEffect(() => {
     if (!tripData || !isLoaded) return;
     
@@ -79,7 +90,7 @@ export function useConvexSync(initialDays: ItineraryDay[], initialTripLinks: Tri
       }
       
       if (tripData.days && tripData.days.length > 0) {
-        const mappedDays = tripData.days.map((d: any) => ({
+        const newMappedDays = tripData.days.map((d: any) => ({
           id: d._id,
           date: d.date,
           title: d.title,
@@ -95,20 +106,33 @@ export function useConvexSync(initialDays: ItineraryDay[], initialTripLinks: Tri
             links: e.links || [],
           })),
         }));
-        setDays(mappedDays);
+        
+        // Only update days if they've actually changed (prevent unnecessary re-renders)
+        if (!areDaysEqual(days, newMappedDays)) {
+          setDays(newMappedDays);
+        }
+        
         // Keep user's selected day if it exists in the loaded days
-        const currentSelectedExists = mappedDays.some(d => d.id === selectedDayId);
+        const currentSelectedExists = newMappedDays.some(d => d.id === selectedDayId);
         if (!currentSelectedExists) {
-          setSelectedDayId(mappedDays[0]?.id || '');
+          setSelectedDayId(newMappedDays[0]?.id || '');
         }
       }
       
       if (tripData.tripLinks) {
-        setTripLinks(tripData.tripLinks.map((l: any) => ({
+        const newTripLinks = tripData.tripLinks.map((l: any) => ({
           id: l._id,
           title: l.title,
           url: l.url,
-        })));
+        }));
+        
+        // Only update links if they've actually changed
+        const isLinksChanged = tripLinks.length !== newTripLinks.length || 
+          tripLinks.some((l, i) => l.id !== newTripLinks[i]?.id || l.title !== newTripLinks[i]?.title);
+        
+        if (isLinksChanged) {
+          setTripLinks(newTripLinks);
+        }
       }
 
       // Save to localStorage
