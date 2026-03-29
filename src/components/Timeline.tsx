@@ -118,25 +118,39 @@ function Timeline({
   const [editingTransportEventId, setEditingTransportEventId] = useState<string | null>(null);
   const [transportForm, setTransportForm] = useState<Partial<NonNullable<DayEvent['transportToNext']>>>({});
 
-// Use ref + localStorage to persist expanded state
+// Use ref + localStorage + useState combo for persistent expanded state
   const expandedIdsRef = useRef<string[]>([]);
-  const [expandedIds, setExpandedIds] = useState<string[]>(() => {
-    if (typeof window === 'undefined') return [];
+  const [expandedIdsState, setExpandedIdsState] = useState<string[]>([]);
+  
+  // Initialize from localStorage on first render only
+  const isExpandedInitialized = useRef(false);
+  if (!isExpandedInitialized.current && typeof window !== 'undefined') {
     try {
       const saved = localStorage.getItem('trip-expanded-ids');
-      return saved ? JSON.parse(saved) : [];
-    } catch { return []; }
-  });
-  const [editingTripLinkIds, setEditingTripLinkIds] = useState<Set<string>>(new Set());
-  const prevTripLinksLength = useRef(tripLinks.length);
-
-  // Save to localStorage whenever expandedIds changes
-  const saveExpandedIds = (ids: string[]) => {
+      if (saved) {
+        expandedIdsRef.current = JSON.parse(saved);
+        setExpandedIdsState(expandedIdsRef.current);
+      }
+    } catch {}
+    isExpandedInitialized.current = true;
+  }
+  
+  // Use the state value for rendering
+  const displayExpandedIds = expandedIdsState.length > 0 ? expandedIdsState : expandedIdsRef.current;
+  
+  // Actual expanded ids for use in component
+  const expandedIds = displayExpandedIds;
+  
+  const setExpandedIds = (ids: string[]) => {
+    expandedIdsRef.current = ids;
+    setExpandedIdsState(ids);
     if (typeof window !== 'undefined') {
       localStorage.setItem('trip-expanded-ids', JSON.stringify(ids));
     }
-    expandedIdsRef.current = ids;
   };
+  
+  const [editingTripLinkIds, setEditingTripLinkIds] = useState<Set<string>>(new Set());
+  const prevTripLinksLength = useRef(tripLinks.length);
   
 // Auto-start editing for newly added links
   React.useEffect(() => {
@@ -149,12 +163,11 @@ function Timeline({
     prevTripLinksLength.current = tripLinks.length;
   }, [tripLinks.length]);
 
-  const toggleExpand = (id: string) => {
+const toggleExpand = (id: string) => {
     const newIds = expandedIds.includes(id) 
       ? expandedIds.filter(x => x !== id) 
       : [...expandedIds, id];
     setExpandedIds(newIds);
-    saveExpandedIds(newIds);
   };
 
   const startEditingTripLink = (id: string) => {
