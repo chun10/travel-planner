@@ -5,7 +5,6 @@ import { useQuery, useMutation } from 'convex/react';
 import { api } from '../../convex/_generated/api';
 import type { ItineraryDay } from './types';
 
-const STORAGE_KEY = 'trip-planner-data';
 const TRIP_ID_KEY = 'trip-planner-trip-id';
 
 interface TripLink {
@@ -23,46 +22,40 @@ export function useConvexSync(initialDays: ItineraryDay[], initialTripLinks: Tri
   const [tripId, setTripId] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
-  // Get URL trip ID
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const params = new URLSearchParams(window.location.search);
-      const urlTripId = params.get('trip');
-      if (urlTripId) {
-        localStorage.setItem(TRIP_ID_KEY, urlTripId);
-      }
+  // 1. Get trip ID from URL first, then localStorage
+  const getTripId = () => {
+    if (typeof window === 'undefined') return null;
+    
+    // Check URL param first
+    const params = new URLSearchParams(window.location.search);
+    const urlTripId = params.get('trip');
+    if (urlTripId) {
+      localStorage.setItem(TRIP_ID_KEY, urlTripId);
+      return urlTripId;
     }
-  }, []);
+    
+    // Then check localStorage
+    return localStorage.getItem(TRIP_ID_KEY);
+  };
+  
+  const currentTripId = getTripId();
+  
+  // 2. Query from Convex - this is the SOLE source of truth
+  const tripData = useQuery(api.functions.getOrCreateTrip, { tripId: currentTripId || undefined });
 
-  // Load from localStorage first (instant)
+  // 3. When Convex returns data, use it (always prefer remote data)
   useEffect(() => {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        if (parsed.days && parsed.days.length > 0) {
-          setTripName(parsed.tripName || 'TripPlanner');
-          setDays(parsed.days);
-          setTripLinks(parsed.tripLinks || initialTripLinks);
-          setSelectedDayId(parsed.selectedDayId || parsed.days[0]?.id || '');
-        }
-      } catch {}
-    }
-    setIsLoaded(true);
-  }, []);
-
-  // Query trip from Convex - built-in real-time subscription!
-  const storedTripId = typeof window !== 'undefined' ? localStorage.getItem(TRIP_ID_KEY) : null;
-  const tripData = useQuery(api.functions.getOrCreateTrip, { tripId: storedTripId || undefined });
-
-  // Initialize tripId from Convex data ONCE on initial load
-  const hasSetTripId = useRef(false);
-  useEffect(() => {
-    if (tripData?.trip && !hasSetTripId.current) {
-      hasSetTripId.current = true;
+    if (!tripData) return;
+    
+    if (tripData.trip) {
+      // Set trip ID
       setTripId(tripData.trip._id);
+      localStorage.setItem(TRIP_ID_KEY, tripData.trip._id);
       
-      // Load trip data into state (only on first load)
+      // Set trip name
+      setTripName(tripData.trip.name);
+      
+      // Set days and selected day
       if (tripData.days && tripData.days.length > 0) {
         const mappedDays = tripData.days.map((d: any) => ({
           id: d._id,
@@ -80,15 +73,11 @@ export function useConvexSync(initialDays: ItineraryDay[], initialTripLinks: Tri
             links: e.links || [],
           })),
         }));
-        
-        // Only set if localStorage is empty (first visit)
-        const saved = localStorage.getItem(STORAGE_KEY);
-        if (!saved || !JSON.parse(saved).days?.length) {
-          setDays(mappedDays);
-          setSelectedDayId(mappedDays[0]?.id || '');
-        }
+        setDays(mappedDays);
+        setSelectedDayId(mappedDays[0]?.id || '');
       }
       
+      // Set trip links
       if (tripData.tripLinks) {
         setTripLinks(tripData.tripLinks.map((l: any) => ({
           id: l._id,
@@ -96,16 +85,18 @@ export function useConvexSync(initialDays: ItineraryDay[], initialTripLinks: Tri
           url: l.url,
         })));
       }
+      
+      setIsLoaded(true);
     }
   }, [tripData]);
 
-  // Save mutation
+  // 4. Save mutation
   const saveTrip = useMutation(api.functions.saveTrip);
 
-  // Save to Convex with debounce
+  // 5. Save to Convex when data changes (debounced)
   const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const saveToConvex = useCallback(async (newDays: ItineraryDay[], newLinks: TripLink[], name?: string) => {
+  const saveToConvex = useCallback(async () => {
     if (saveTimeoutRef.current) {
       clearTimeout(saveTimeoutRef.current);
     }
@@ -114,10 +105,10 @@ export function useConvexSync(initialDays: ItineraryDay[], initialTripLinks: Tri
     
     saveTimeoutRef.current = setTimeout(async () => {
       try {
-        const result = await saveTrip({
+        await saveTrip({
           tripId: tripId || undefined,
-          name: name || tripName,
-          days: newDays.map(d => ({
+          name: tripName,
+          days: days.map(d => ({
             id: d.id,
             date: d.date,
             title: d.title,
@@ -135,62 +126,43 @@ export function useConvexSync(initialDays: ItineraryDay[], initialTripLinks: Tri
               sortOrder: 0,
             })),
           })),
-          tripLinks: newLinks.map(l => ({
+          tripLinks: tripLinks.map(l => ({
             id: l.id,
             title: l.title,
             url: l.url,
           })),
         });
         
-        if (result && !tripId) {
-          setTripId(result);
-          localStorage.setItem(TRIP_ID_KEY, result);
-        }
-        
-        console.log('Saved to Convex:', result);
+        console.log('Saved to Convex');
       } catch (err) {
         console.error('Failed to save to Convex:', err);
       }
       setIsSaving(false);
-    }, 1000);
-  }, [tripId, tripName, saveTrip]);
+    }, 500);
+  }, [tripId, tripName, days, tripLinks, saveTrip]);
 
-  // Save to localStorage on every change
+  // 6. Trigger save when user edits data (but not on initial load)
+  const isInitialLoad = useRef(true);
   useEffect(() => {
-    if (!isLoaded) return;
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({
-      tripName,
-      days,
-      tripLinks,
-      selectedDayId,
-    }));
-  }, [tripName, days, tripLinks, selectedDayId, isLoaded]);
+    if (isInitialLoad.current) {
+      isInitialLoad.current = false;
+      return;
+    }
+    saveToConvex();
+  }, [tripName, days, tripLinks]);
 
-  // Wrapper for setDays that triggers save
+  // Wrappers
   const updateDays = useCallback((updater: React.SetStateAction<ItineraryDay[]>) => {
-    setDays(prev => {
-      const next = typeof updater === 'function' ? (updater as (p: ItineraryDay[]) => ItineraryDay[])(prev) : updater;
-      saveToConvex(next, tripLinks);
-      return next;
-    });
-  }, [tripLinks, saveToConvex]);
+    setDays(updater);
+  }, []);
 
-  // Wrapper for setTripLinks that triggers save
   const updateTripLinks = useCallback((updater: React.SetStateAction<TripLink[]>) => {
-    setTripLinks(prev => {
-      const next = typeof updater === 'function' ? (updater as (p: TripLink[]) => TripLink[])(prev) : updater;
-      saveToConvex(days, next);
-      return next;
-    });
-  }, [days, saveToConvex]);
+    setTripLinks(updater);
+  }, []);
 
-  // Wrapper for setTripName that triggers save
   const updateTripName = useCallback((name: string) => {
     setTripName(name);
-    localStorage.setItem('tripNameEdited', 'true');
-    // Also save the name change
-    saveToConvex(days, tripLinks, name);
-  }, [days, tripLinks, saveToConvex]);
+  }, []);
 
   return {
     isLoaded,
