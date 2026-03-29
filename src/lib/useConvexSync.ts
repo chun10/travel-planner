@@ -69,10 +69,25 @@ export function useConvexSync(initialDays: ItineraryDay[], initialTripLinks: Tri
       day.date === b[i]?.date &&
       day.events.length === b[i]?.events.length
     );
-  };
+};
+   
+// Track if update came from remote Convex (to allow) vs local edit (to skip)
+  // Default is true to allow remote updates
+  const isRemoteUpdateRef = useRef(true);
   
   useEffect(() => {
-    if (!tripData || !isLoaded) return;
+    // Skip if this is not a remote update (local edit in progress)
+    if (!isRemoteUpdateRef.current) return;
+    
+if (!tripData || !isLoaded) return;
+    
+    // If we just saved locally, skip this Convex update to prevent loop
+    if (!isRemoteUpdateRef.current) {
+      // We just did a local save - don't update from remote to prevent infinite loop
+      // Reset to allow future remote updates after cooldown
+      setTimeout(() => { isRemoteUpdateRef.current = true; }, 2000);
+      return;
+    }
     
     // Debounce: only sync if 1 second has passed since last sync
     const now = Date.now();
@@ -160,6 +175,9 @@ export function useConvexSync(initialDays: ItineraryDay[], initialTripLinks: Tri
     
     saveTimeoutRef.current = setTimeout(async () => {
       try {
+        // Mark as NOT a remote update (we initiated local edit)
+        isRemoteUpdateRef.current = false;
+        
         const result = await saveTrip({
           tripId: tripId || undefined,
           name: tripName,
@@ -244,6 +262,10 @@ export function useConvexSync(initialDays: ItineraryDay[], initialTripLinks: Tri
   // Save to Convex when data changes
   useEffect(() => {
     if (!isLoaded) return;
+    
+    // Mark as NOT a remote update BEFORE saving (this is a local edit)
+    isRemoteUpdateRef.current = false;
+    
     saveToConvex(days, tripLinks);
   }, [days, tripLinks]);
 
