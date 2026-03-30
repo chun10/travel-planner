@@ -762,11 +762,15 @@ const toggleExpand = (id: string) => {
                         </div>
                       </div>
                     </div>
-                  ) : !isEditing && (
-                    <div className="ml-[18px] mt-2 mb-2 relative z-10 pl-[34px] opacity-0 group-hover:opacity-100 transition-opacity">
+                  ) : !event.transportToNext && (
+                    <div className={`ml-[18px] mt-2 mb-2 relative z-10 pl-[34px] ${isEditing ? '' : 'opacity-0 group-hover:opacity-100'} transition-opacity`}>
                       <button 
                         onClick={() => startEditingTransport(event, true)} 
-                        className="text-[10px] font-bold text-slate-400 hover:text-blue-500 flex items-center gap-1.5 bg-white border border-dashed border-slate-300 hover:border-blue-300 px-3 py-1.5 rounded-full shadow-sm active:scale-95 transition-all"
+                        className={`text-[10px] font-bold flex items-center gap-1.5 border border-dashed px-3 py-1.5 rounded-full shadow-sm active:scale-95 transition-all ${
+                          isEditing 
+                            ? 'text-blue-500 bg-blue-50 border-blue-300 hover:bg-blue-100' 
+                            : 'text-slate-400 bg-white border-slate-300 hover:border-blue-300 hover:text-blue-500'
+                        }`}
                       >
                         <PlusCircle size={12} /> 新增交通方式
                       </button>
@@ -951,7 +955,8 @@ export default memo(Timeline, (prev, next) => {
           prevEvent.time !== nextEvent.time ||
           prevEvent.locationName !== nextEvent.locationName ||
           prevEvent.description !== nextEvent.description ||
-          prevEvent.eventType !== nextEvent.eventType) {
+          prevEvent.eventType !== nextEvent.eventType ||
+          JSON.stringify(prevEvent.transportToNext) !== JSON.stringify(nextEvent.transportToNext)) {
         return false;
       }
     }
