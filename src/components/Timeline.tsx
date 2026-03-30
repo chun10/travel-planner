@@ -703,8 +703,8 @@ const toggleExpand = (id: string) => {
                         <button onClick={() => saveTransport(event)} className="px-4 py-2 text-xs font-bold text-white bg-blue-600 rounded-xl shadow-md hover:bg-blue-700">儲存交通</button>
                       </div>
                     </div>
-                  ) : isEditing && event.transportToNext ? (
-                    <div className="group/transport flex items-center gap-3 ml-[18px] mt-2 mb-2 relative z-10 cursor-pointer" onClick={() => startEditingTransport(event)}>
+                  ) : event.transportToNext ? (
+                    <div className={`group/transport flex items-center gap-3 ml-[18px] mt-2 mb-2 relative z-10 ${isEditing ? 'cursor-pointer' : ''}`} onClick={isEditing ? () => startEditingTransport(event) : undefined}>
                       <div className="w-6 h-6 rounded-full bg-slate-100 border-[3px] border-white flex items-center justify-center shrink-0 shadow-sm z-20">
                         <div className="w-1.5 h-1.5 rounded-full bg-slate-400" />
                       </div>
@@ -751,15 +751,17 @@ const toggleExpand = (id: string) => {
                           </div>
                         )}
                         
-                        {/* Quick Actions (Hover/Focus) */}
-                        <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1 opacity-0 group-hover/transport:opacity-100 transition-opacity bg-white/80 rounded-full p-0.5 backdrop-blur-sm">
-                          <button onClick={(e) => { e.stopPropagation(); startEditingTransport(event); }} className="p-1.5 text-blue-500 hover:bg-blue-50 rounded-full" title="編輯">
-                            <Edit2 size={12} />
-                          </button>
-                          <button onClick={(e) => { e.stopPropagation(); removeTransport(event); }} className="p-1.5 text-red-500 hover:bg-red-50 rounded-full" title="刪除">
-                            <Trash2 size={12} />
-                          </button>
-                        </div>
+                        {/* Quick Actions - Only show in edit mode */}
+                        {isEditing && (
+                          <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1 bg-white/80 rounded-full p-0.5 backdrop-blur-sm">
+                            <button onClick={(e) => { e.stopPropagation(); startEditingTransport(event); }} className="p-1.5 text-blue-500 hover:bg-blue-50 rounded-full" title="編輯">
+                              <Edit2 size={12} />
+                            </button>
+                            <button onClick={(e) => { e.stopPropagation(); removeTransport(event); }} className="p-1.5 text-red-500 hover:bg-red-50 rounded-full" title="刪除">
+                              <Trash2 size={12} />
+                            </button>
+                          </div>
+                        )}
                       </div>
                     </div>
                   ) : !event.transportToNext && (
