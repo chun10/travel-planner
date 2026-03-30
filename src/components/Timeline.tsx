@@ -638,7 +638,7 @@ const toggleExpand = (id: string) => {
                   </div>
 
                   {/* Transport Info Box */}
-                  {!isEditing && editingTransportEventId === event.id ? (
+                  {isEditing && editingTransportEventId === event.id ? (
                     <div className="ml-[18px] mt-2 mb-4 bg-blue-50 border-2 border-blue-200 rounded-2xl p-4 flex flex-col gap-3 relative z-20 shadow-sm animate-in zoom-in-95 duration-200">
                       <div className="flex gap-2">
                         {['TRANSIT', 'WALKING', 'DRIVING'].map(mode => (
@@ -687,7 +687,7 @@ const toggleExpand = (id: string) => {
                         <button onClick={() => saveTransport(event)} className="px-4 py-2 text-xs font-bold text-white bg-blue-600 rounded-xl shadow-md hover:bg-blue-700">儲存交通</button>
                       </div>
                     </div>
-                  ) : !isEditing && event.transportToNext ? (
+                  ) : isEditing && event.transportToNext ? (
                     <div className="group/transport flex items-center gap-3 ml-[18px] mt-2 mb-2 relative z-10 cursor-pointer" onClick={() => startEditingTransport(event)}>
                       <div className="w-6 h-6 rounded-full bg-slate-100 border-[3px] border-white flex items-center justify-center shrink-0 shadow-sm z-20">
                         <div className="w-1.5 h-1.5 rounded-full bg-slate-400" />
@@ -792,9 +792,10 @@ const toggleExpand = (id: string) => {
               </div>
               <textarea
                 value={notesInput}
-                onChange={handleNotesChange}
-                placeholder="在這裡寫下今天的花費紀錄、必買清單、想記住的事情..."
-                className="flex-1 w-full resize-none border-none focus:ring-0 p-1 text-[15px] leading-relaxed text-slate-600 bg-transparent"
+                onChange={isEditing ? handleNotesChange : undefined}
+                placeholder={isEditing ? "在這裡寫下今天的花費紀錄、必買清單、想記住的事情..." : ""}
+                readOnly={!isEditing}
+                className={`flex-1 w-full resize-none border-none focus:ring-0 p-1 text-[15px] leading-relaxed text-slate-600 bg-transparent ${!isEditing ? 'cursor-default' : ''}`}
                 style={{ outline: 'none' }}
               />
               <div className="text-[11px] font-medium text-slate-400 mt-2 px-1 text-right">

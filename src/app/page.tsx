@@ -224,7 +224,7 @@ function MainApp({
         <div className="bg-white px-5 py-4 flex justify-between items-center shadow-sm z-20 shrink-0">
           <div className="flex items-center gap-2 flex-1 min-w-0">
             <MapPin className="text-blue-600 shrink-0" size={24} />
-            {isEditingTripName ? (
+            {isEditing && isEditingTripName ? (
               <div className="flex items-center gap-1.5 flex-1 min-w-0">
                 <input
                   type="text"
@@ -237,9 +237,13 @@ function MainApp({
                 <button onClick={() => { setIsEditingTripName(false); setTripNameInput(tripName); }} className="text-slate-400 p-1 hover:bg-slate-50 rounded-full shrink-0"><X size={18} /></button>
               </div>
             ) : (
-              <div className="flex items-center gap-1.5 cursor-pointer group min-w-0" onClick={() => { setIsEditingTripName(true); setTripNameInput(tripName); }}>
+              <div className="flex items-center gap-1.5 group min-w-0">
                 <h1 className="font-extrabold text-xl text-slate-800 tracking-tight truncate group-hover:text-blue-600 transition-colors">{tripName}</h1>
-                <Edit2 size={14} className="text-slate-300 group-hover:text-blue-500 shrink-0" />
+                {isEditing && (
+                  <button onClick={() => { setIsEditingTripName(true); setTripNameInput(tripName); }} className="text-slate-300 hover:text-blue-500 shrink-0">
+                    <Edit2 size={14} />
+                  </button>
+                )}
               </div>
             )}
           </div>
