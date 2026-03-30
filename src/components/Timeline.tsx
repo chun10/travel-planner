@@ -416,7 +416,7 @@ const toggleExpand = (id: string) => {
                     
                     {/* Time Badge */}
                     <div className="flex flex-col items-center z-10 w-[50px] shrink-0 pt-2">
-                      {isEditing ? (
+                      {isEventEditing ? (
                         <input 
                           type="time" 
                           value={editForm.time || ''} 
@@ -434,9 +434,9 @@ const toggleExpand = (id: string) => {
 
                     {/* Event Card */}
                     <div className={`flex-1 bg-white rounded-2xl shadow-sm relative overflow-hidden transition-all
-                      ${isEditing ? 'border-2 border-blue-400 ring-2 ring-blue-50 shadow-md scale-[1.02] z-20' : 'border border-slate-200'}
+                      ${isEventEditing ? 'border-2 border-blue-400 ring-2 ring-blue-50 shadow-md scale-[1.02] z-20' : 'border border-slate-200'}
                     `}>
-                      {isEditing ? (
+                      {isEventEditing ? (
                         <div className="p-4 bg-blue-50/30">
                           
                           {/* Event Type Selector */}
