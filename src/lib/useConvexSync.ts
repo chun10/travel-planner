@@ -5,6 +5,7 @@ import { useQuery, useMutation } from 'convex/react';
 import { api } from '../../convex/_generated/api';
 import type { ItineraryDay } from './types';
 
+const STORAGE_KEY = 'trip-planner-data';
 const TRIP_ID_KEY = 'trip-planner-trip-id';
 
 interface TripLink {
@@ -21,30 +22,31 @@ export function useConvexSync(initialDays: ItineraryDay[], initialTripLinks: Tri
   const [selectedDayId, setSelectedDayId] = useState(initialDays[0]?.id || '');
   const [tripId, setTripId] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
-  
-  // Edit mode - user can edit locally, then save to Convex manually
   const [isEditing, setIsEditing] = useState(false);
 
-  // Get trip ID
-  const getTripId = () => {
-    if (typeof window === 'undefined') return null;
-    const params = new URLSearchParams(window.location.search);
-    const urlTripId = params.get('trip');
-    if (urlTripId) {
-      localStorage.setItem(TRIP_ID_KEY, urlTripId);
-      return urlTripId;
-    }
-    return localStorage.getItem(TRIP_ID_KEY);
-  };
-  
-  const currentTripId = getTripId();
-  
-  // Query from Convex (only on initial load)
-  const tripData = useQuery(api.functions.getOrCreateTrip, { tripId: currentTripId || undefined });
+  // Save mutation
+  const saveTrip = useMutation(api.functions.saveTrip);
 
   // Initialize from Convex ONLY once
   const hasInitiallyLoaded = useRef(false);
-  
+
+  // Get trip ID from URL or localStorage
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const urlTripId = params.get('trip');
+      const storedTripId = localStorage.getItem(TRIP_ID_KEY);
+      const finalTripId = urlTripId || storedTripId || null;
+      if (finalTripId) {
+        setTripId(finalTripId);
+        localStorage.setItem(TRIP_ID_KEY, finalTripId);
+      }
+    }
+  }, []);
+
+  // Query from Convex
+  const tripData = useQuery(api.functions.getOrCreateTrip, { tripId: tripId || undefined });
+
   useEffect(() => {
     if (hasInitiallyLoaded.current || !tripData || !tripData.trip) return;
     
@@ -85,18 +87,15 @@ export function useConvexSync(initialDays: ItineraryDay[], initialTripLinks: Tri
     setIsLoaded(true);
   }, [tripData]);
 
-  // Save mutation
-  const saveTrip = useMutation(api.functions.saveTrip);
-
-  // Save to Convex (for edit mode)
+  // Save to Convex
   const saveToConvex = useCallback(async () => {
-    if (!tripId || isSaving) return;
+    if (isSaving) return;
     
     setIsSaving(true);
     
     try {
-      await saveTrip({
-        tripId,
+      const result = await saveTrip({
+        tripId: tripId || undefined,
         name: tripName,
         days: days.map(d => ({
           id: d.id,
@@ -123,8 +122,13 @@ export function useConvexSync(initialDays: ItineraryDay[], initialTripLinks: Tri
         })),
       });
       
+      if (result && !tripId) {
+        setTripId(result);
+        localStorage.setItem(TRIP_ID_KEY, result);
+      }
+      
       console.log('Saved to Convex');
-      setIsEditing(false); // Exit edit mode after save
+      setIsEditing(false);
     } catch (err) {
       console.error('Failed to save to Convex:', err);
     }
@@ -140,8 +144,6 @@ export function useConvexSync(initialDays: ItineraryDay[], initialTripLinks: Tri
   // Cancel edit mode (revert to saved state)
   const cancelEdit = useCallback(() => {
     setIsEditing(false);
-    // Reload from Convex - simple way is page refresh
-    window.location.reload();
   }, []);
 
   // Wrappers
@@ -160,7 +162,7 @@ export function useConvexSync(initialDays: ItineraryDay[], initialTripLinks: Tri
   return {
     isLoaded,
     isSaving,
-    isEditing,         // Edit mode state
+    isEditing,
     tripName,
     setTripName: updateTripName,
     days,
@@ -170,8 +172,8 @@ export function useConvexSync(initialDays: ItineraryDay[], initialTripLinks: Tri
     selectedDayId,
     setSelectedDayId,
     tripId,
-    enterEditMode,     // Click to enter edit mode
-    saveToConvex,       // Click to save after editing
-    cancelEdit,        // Click to cancel and reload
+    enterEditMode,
+    saveToConvex,
+    cancelEdit,
   };
 }
