@@ -351,7 +351,7 @@ const toggleExpand = (id: string) => {
                 onDeleteDay(day.id);
               }
             }}
-            className="shrink-0 ml-2 p-2 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors"
+            className={`shrink-0 ml-2 p-2 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors ${isEditing ? 'text-slate-300' : 'hidden'}`}
             title="刪除此天"
           >
             <Trash2 size={16} />
@@ -569,14 +569,16 @@ const toggleExpand = (id: string) => {
                           {expandedIds.includes(event.id) && (
                             <div className="px-4 pb-4 pt-1 flex flex-col animate-in slide-in-from-top-2 duration-200 fade-in border-t border-slate-50">
                               
-                              <div className="flex justify-end gap-1 mb-3">
-                                <button onClick={(e) => { e.stopPropagation(); startEditing(event); }} className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-colors bg-white rounded-full shadow-sm border border-slate-100" title="編輯">
-                                  <Edit2 size={12} />
-                                </button>
-                                <button onClick={(e) => { e.stopPropagation(); onDeleteEvent(event.id); }} className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors bg-white rounded-full shadow-sm border border-slate-100" title="刪除">
-                                  <Trash2 size={12} />
-                                </button>
-                              </div>
+                              {isEditing && (
+                                <div className="flex justify-end gap-1 mb-3">
+                                  <button onClick={(e) => { e.stopPropagation(); startEditing(event); }} className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-colors bg-white rounded-full shadow-sm border border-slate-100" title="編輯">
+                                    <Edit2 size={12} />
+                                  </button>
+                                  <button onClick={(e) => { e.stopPropagation(); onDeleteEvent(event.id); }} className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors bg-white rounded-full shadow-sm border border-slate-100" title="刪除">
+                                    <Trash2 size={12} />
+                                  </button>
+                                </div>
+                              )}
 
                               {/* Description */}
                               {event.description && (
@@ -747,23 +749,25 @@ const toggleExpand = (id: string) => {
               );
             })}
 
-            {/* Add Event Button Mobile */}
-            <div className="flex items-center gap-4 relative z-10 pt-2 ml-1">
-              <div className="w-[42px] flex justify-center shrink-0">
-                <button 
+            {/* Add Event Button - Only show in edit mode */}
+            {isEditing && (
+              <div className="flex items-center gap-4 relative z-10 pt-2 ml-1">
+                <div className="w-[42px] flex justify-center shrink-0">
+                  <button 
+                    onClick={onAddEvent}
+                    className="w-10 h-10 rounded-full bg-white border-2 border-dashed border-blue-300 flex items-center justify-center text-blue-500 active:bg-blue-50 transition-all shadow-sm"
+                  >
+                    <PlusCircle size={20} />
+                  </button>
+                </div>
+                <div 
                   onClick={onAddEvent}
-                  className="w-10 h-10 rounded-full bg-white border-2 border-dashed border-blue-300 flex items-center justify-center text-blue-500 active:bg-blue-50 transition-all shadow-sm"
+                  className="flex-1 border-2 border-dashed border-slate-200 bg-white/50 rounded-2xl p-4 flex items-center justify-center text-slate-500 cursor-pointer active:bg-slate-50 transition-all font-bold text-sm"
                 >
-                  <PlusCircle size={20} />
-                </button>
+                  新增下一個行程
+                </div>
               </div>
-              <div 
-                onClick={onAddEvent}
-                className="flex-1 border-2 border-dashed border-slate-200 bg-white/50 rounded-2xl p-4 flex items-center justify-center text-slate-500 cursor-pointer active:bg-slate-50 transition-all font-bold text-sm"
-              >
-                新增下一個行程
-              </div>
-            </div>
+            )}
           </div>
         ) : (
           /* ================================== */
@@ -799,12 +803,14 @@ const toggleExpand = (id: string) => {
                 <Globe size={18} className="text-indigo-500" />
                 <h3 className="font-extrabold text-sm">常用網站與連結</h3>
               </div>
-              <button 
-                onClick={onAddTripLink}
-                className="text-blue-600 bg-blue-50 hover:bg-blue-100 px-2.5 py-1 rounded-lg text-[10px] font-bold flex items-center gap-1 transition-colors"
-              >
-                <PlusCircle size={12}/> 新增
-              </button>
+              {isEditing && (
+                <button 
+                  onClick={onAddTripLink}
+                  className="text-blue-600 bg-blue-50 hover:bg-blue-100 px-2.5 py-1 rounded-lg text-[10px] font-bold flex items-center gap-1 transition-colors"
+                >
+                  <PlusCircle size={12}/> 新增
+                </button>
+              )}
             </div>
 
             <div className="flex flex-col gap-2 px-4 pb-4">
@@ -862,16 +868,18 @@ const toggleExpand = (id: string) => {
                         <Edit2 size={12} />
                       </button>
                     )}
-                    <button 
-                      onClick={() => {
-                        stopEditingTripLink(link.id);
-                        onDeleteTripLink(link.id);
-                      }}
-                      className="p-1.5 text-slate-300 hover:text-red-500 rounded-full opacity-0 group-hover/link:opacity-100 transition-all"
-                      title="刪除"
-                    >
-                      <Trash2 size={12} />
-                    </button>
+                    {isEditing && (
+                      <button 
+                        onClick={() => {
+                          stopEditingTripLink(link.id);
+                          onDeleteTripLink(link.id);
+                        }}
+                        className="p-1.5 text-slate-300 hover:text-red-500 rounded-full opacity-0 group-hover/link:opacity-100 transition-all"
+                        title="刪除"
+                      >
+                        <Trash2 size={12} />
+                      </button>
+                    )}
                   </div>
                 </div>
                 );

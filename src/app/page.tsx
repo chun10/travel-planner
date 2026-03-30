@@ -333,12 +333,14 @@ function MainApp({
                 Day {index + 1}
               </button>
             ))}
-            <button
-              onClick={handleAddDay}
-              className="shrink-0 px-4 py-2.5 flex items-center justify-center rounded-full bg-blue-50 border-2 border-blue-200 text-blue-600 hover:bg-blue-100 hover:border-blue-400 transition-all font-semibold text-sm gap-1"
-            >
-              <Plus size={16} /> 新增
-            </button>
+            {isEditing && (
+              <button
+                onClick={handleAddDay}
+                className="shrink-0 px-4 py-2.5 flex items-center justify-center rounded-full bg-blue-50 border-2 border-blue-200 text-blue-600 hover:bg-blue-100 hover:border-blue-400 transition-all font-semibold text-sm gap-1"
+              >
+                <Plus size={16} /> 新增
+              </button>
+            )}
           </div>
         </div>
 
@@ -363,7 +365,9 @@ function MainApp({
           ) : (
             <div className="flex flex-col items-center justify-center h-full gap-3 text-slate-400">
               <p className="text-sm font-medium">尚無行程</p>
-              <button onClick={handleAddDay} className="text-sm text-blue-600 font-bold underline">新增第一天</button>
+              {isEditing && (
+                <button onClick={handleAddDay} className="text-sm text-blue-600 font-bold underline">新增第一天</button>
+              )}
             </div>
           )}
         </div>
