@@ -301,7 +301,7 @@ const toggleExpand = (id: string) => {
         <div className="flex justify-between items-start gap-2">
           
           <div className="flex-1 w-full overflow-hidden">
-            {isEditingTitle ? (
+            {isEditing && isEditingTitle ? (
               <div className="flex items-center gap-2">
                 <input
                   type="text"
@@ -314,15 +314,19 @@ const toggleExpand = (id: string) => {
                 <button onClick={() => { setIsEditingTitle(false); setTitleInput(day.title); }} className="text-slate-400 p-1.5 hover:bg-slate-50 rounded-full shrink-0"><X size={18} /></button>
               </div>
             ) : (
-              <div className="flex items-center gap-2 group cursor-pointer" onClick={() => setIsEditingTitle(true)}>
+              <div className="flex items-center gap-2">
                 <h2 className="text-xl font-extrabold text-slate-800 truncate">{day.title}</h2>
-                <Edit2 size={14} className="text-slate-300" />
+                {isEditing && (
+                  <button onClick={() => setIsEditingTitle(true)} className="text-slate-300 hover:text-blue-500">
+                    <Edit2 size={14} />
+                  </button>
+                )}
               </div>
             )}
           </div>
 
           <div className="shrink-0 flex items-center">
-            {isEditingDate ? (
+            {isEditing && isEditingDate ? (
               <div className="flex items-center gap-1 bg-blue-50 px-2 py-1 rounded-full border border-blue-200">
                 <input
                   type="date"
@@ -335,8 +339,8 @@ const toggleExpand = (id: string) => {
               </div>
             ) : (
               <div 
-                className="cursor-pointer flex items-center gap-1.5 bg-blue-100 text-blue-800 text-xs font-extrabold px-3 py-1.5 rounded-full border border-blue-200"
-                onClick={() => setIsEditingDate(true)}
+                className={`flex items-center gap-1.5 bg-blue-100 text-blue-800 text-xs font-extrabold px-3 py-1.5 rounded-full border border-blue-200 ${isEditing ? 'cursor-pointer hover:bg-blue-200' : ''}`}
+                onClick={isEditing ? () => setIsEditingDate(true) : undefined}
               >
                 <Calendar size={12} className="text-blue-600" />
                 <span>{day.date || '選擇日期'}</span>
@@ -403,7 +407,7 @@ const toggleExpand = (id: string) => {
             )}
             
             {day.events.map((event, index) => {
-              const isEditing = editingEventId === event.id;
+              const isEventEditing = editingEventId === event.id;
               const { icon: EventIcon, color, bg, border } = getEventIconProps(event.eventType);
 
               return (
@@ -569,11 +573,18 @@ const toggleExpand = (id: string) => {
                           {expandedIds.includes(event.id) && (
                             <div className="px-4 pb-4 pt-1 flex flex-col animate-in slide-in-from-top-2 duration-200 fade-in border-t border-slate-50">
                               
+                              {/* Edit/Delete buttons - show in edit mode */}
                               {isEditing && (
                                 <div className="flex justify-end gap-1 mb-3">
-                                  <button onClick={(e) => { e.stopPropagation(); startEditing(event); }} className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-colors bg-white rounded-full shadow-sm border border-slate-100" title="編輯">
-                                    <Edit2 size={12} />
-                                  </button>
+                                  {isEventEditing ? (
+                                    <button onClick={(e) => { e.stopPropagation(); startEditing(event); }} className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-colors bg-white rounded-full shadow-sm border border-slate-100" title="編輯">
+                                      <Edit2 size={12} />
+                                    </button>
+                                  ) : (
+                                    <button onClick={(e) => { e.stopPropagation(); startEditing(event); }} className="p-1.5 text-slate-300 hover:text-blue-500 rounded-full opacity-0 group-hover/event:opacity-100 transition-all" title="編輯">
+                                      <Edit2 size={12} />
+                                    </button>
+                                  )}
                                   <button onClick={(e) => { e.stopPropagation(); onDeleteEvent(event.id); }} className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors bg-white rounded-full shadow-sm border border-slate-100" title="刪除">
                                     <Trash2 size={12} />
                                   </button>
