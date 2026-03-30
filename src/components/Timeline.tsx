@@ -46,6 +46,7 @@ interface TimelineProps {
   onUpdateTripLink: (id: string, field: 'title' | 'url', value: string) => void;
   onDeleteTripLink: (id: string) => void;
   onSaveTripLinks?: () => void; // Callback to trigger sync when editing is done
+  prevEventsCount?: number; // Track previous event count to detect new events
 }
 
 const getTransportIcon = (mode: TransportMode, className?: string) => {
@@ -204,6 +205,21 @@ const toggleExpand = (id: string) => {
     setIsEditingTitle(false);
     setIsEditingDate(false);
   }, [day.id, day.title, day.date, day.notes]);
+
+  // Auto-start editing when a new event is added
+  const prevEventsCountRef = React.useRef(day.events.length);
+  React.useEffect(() => {
+    // Check if a new event was added
+    if (isEditing && day.events.length > prevEventsCountRef.current) {
+      // Find the newest event (last one added)
+      const newEvent = day.events[day.events.length - 1];
+      if (newEvent && !editingEventId) {
+        // Start editing the new event
+        startEditing(newEvent);
+      }
+    }
+    prevEventsCountRef.current = day.events.length;
+  }, [day.events.length, isEditing]);
 
   const startEditing = (event: DayEvent) => {
     setEditingEventId(event.id);
@@ -914,12 +930,32 @@ const toggleExpand = (id: string) => {
 // Use memo to prevent unnecessary re-renders
 // Only re-render when day data or tripLinks actually change
 export default memo(Timeline, (prev, next) => {
+  // CRITICAL: Always re-render when isEditing changes
+  if (prev.isEditing !== next.isEditing) return false;
+  
   // Re-render if day data changes
   if (prev.day?.id !== next.day?.id) return false;
   if (prev.day?.title !== next.day?.title) return false;
   if (prev.day?.date !== next.day?.date) return false;
   if (prev.day?.notes !== next.day?.notes) return false;
+  
+  // Re-render if events array length changes
   if (prev.day?.events?.length !== next.day?.events?.length) return false;
+  
+  // Re-render if any event data changes (shallow check is enough for now)
+  if (prev.day?.events && next.day?.events) {
+    for (let i = 0; i < prev.day.events.length; i++) {
+      const prevEvent = prev.day.events[i];
+      const nextEvent = next.day.events[i];
+      if (prevEvent.id !== nextEvent.id ||
+          prevEvent.time !== nextEvent.time ||
+          prevEvent.locationName !== nextEvent.locationName ||
+          prevEvent.description !== nextEvent.description ||
+          prevEvent.eventType !== nextEvent.eventType) {
+        return false;
+      }
+    }
+  }
   
   // Re-render if tripLinks change
   if (prev.tripLinks?.length !== next.tripLinks?.length) return false;
