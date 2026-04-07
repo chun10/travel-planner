@@ -966,8 +966,21 @@ export default memo(Timeline, (prev, next) => {
     }
   }
   
-  // Re-render if day links change
+  // Re-render if day links change (content or length)
   if ((prev.day?.links?.length || 0) !== (next.day?.links?.length || 0)) return false;
+  
+  // Re-render if link content changes
+  if (prev.day?.links && next.day?.links) {
+    for (let i = 0; i < prev.day.links.length; i++) {
+      const prevLink = prev.day.links[i];
+      const nextLink = next.day.links[i];
+      if (prevLink.id !== nextLink.id ||
+          prevLink.title !== nextLink.title ||
+          prevLink.url !== nextLink.url) {
+        return false;
+      }
+    }
+  }
   
   return true;
 });
