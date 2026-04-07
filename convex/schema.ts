@@ -28,9 +28,9 @@ export default defineSchema({
     sortOrder: v.optional(v.number()),
   }).index('dayId', ['dayId']),
 
-  tripLinks: defineTable({
-    tripId: v.string(),
+  dayLinks: defineTable({
+    dayId: v.string(),
     title: v.string(),
     url: v.string(),
-  }).index('tripId', ['tripId']),
+  }).index('dayId', ['dayId']),
 });

@@ -32,4 +32,11 @@ export interface ItineraryDay {
   title: string;
   events: DayEvent[];
   notes?: string;
+  links?: DayLink[];
+}
+
+export interface DayLink {
+  id: string;
+  title: string;
+  url: string;
 }

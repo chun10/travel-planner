@@ -8,17 +8,10 @@ import type { ItineraryDay } from './types';
 const STORAGE_KEY = 'trip-planner-data';
 const TRIP_ID_KEY = 'trip-planner-trip-id';
 
-interface TripLink {
-  id: string;
-  title: string;
-  url: string;
-}
-
-export function useConvexSync(initialDays: ItineraryDay[], initialTripLinks: TripLink[]) {
+export function useConvexSync(initialDays: ItineraryDay[], initialTripLinks?: { id: string; title: string; url: string }[]) {
   const [isLoaded, setIsLoaded] = useState(false);
   const [tripName, setTripName] = useState('TripPlanner');
   const [days, setDays] = useState<ItineraryDay[]>(initialDays);
-  const [tripLinks, setTripLinks] = useState<TripLink[]>(initialTripLinks);
   const [selectedDayId, setSelectedDayId] = useState(initialDays[0]?.id || '');
   const [tripId, setTripId] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
@@ -71,17 +64,14 @@ export function useConvexSync(initialDays: ItineraryDay[], initialTripLinks: Tri
           transportToNext: e.transportToNext,
           links: e.links || [],
         })),
+        links: (d.links || []).map((l: any) => ({
+          id: l._id,
+          title: l.title,
+          url: l.url,
+        })),
       }));
       setDays(mappedDays);
       setSelectedDayId(mappedDays[0]?.id || '');
-    }
-    
-    if (tripData.tripLinks) {
-      setTripLinks(tripData.tripLinks.map((l: any) => ({
-        id: l._id,
-        title: l.title,
-        url: l.url,
-      })));
     }
     
     setIsLoaded(true);
@@ -114,11 +104,11 @@ export function useConvexSync(initialDays: ItineraryDay[], initialTripLinks: Tri
             links: e.links,
             sortOrder: 0,
           })),
-        })),
-        tripLinks: tripLinks.map(l => ({
-          id: l.id,
-          title: l.title,
-          url: l.url,
+          links: (d.links || []).map(l => ({
+            id: l.id,
+            title: l.title,
+            url: l.url,
+          })),
         })),
       });
       
@@ -134,7 +124,7 @@ export function useConvexSync(initialDays: ItineraryDay[], initialTripLinks: Tri
     }
     
     setIsSaving(false);
-  }, [tripId, tripName, days, tripLinks, saveTrip, isSaving]);
+  }, [tripId, tripName, days, saveTrip, isSaving]);
 
   // Enter edit mode
   const enterEditMode = useCallback(() => {
@@ -151,10 +141,6 @@ export function useConvexSync(initialDays: ItineraryDay[], initialTripLinks: Tri
     setDays(updater);
   }, []);
 
-  const updateTripLinks = useCallback((updater: React.SetStateAction<TripLink[]>) => {
-    setTripLinks(updater);
-  }, []);
-
   const updateTripName = useCallback((name: string) => {
     setTripName(name);
   }, []);
@@ -167,8 +153,6 @@ export function useConvexSync(initialDays: ItineraryDay[], initialTripLinks: Tri
     setTripName: updateTripName,
     days,
     setDays: updateDays,
-    tripLinks,
-    setTripLinks: updateTripLinks,
     selectedDayId,
     setSelectedDayId,
     tripId,

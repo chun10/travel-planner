@@ -25,7 +25,7 @@ import {
   Link2
 } from 'lucide-react';
 
-interface TripLink {
+interface DayLink {
   id: string;
   title: string;
   url: string;
@@ -41,11 +41,9 @@ interface TimelineProps {
   onUpdateDayTitle: (newTitle: string) => void;
   onUpdateDayDate: (newDate: string) => void;
   onUpdateDayNotes: (newNotes: string) => void;
-  tripLinks: TripLink[];
-  onAddTripLink: () => void;
-  onUpdateTripLink: (id: string, field: 'title' | 'url', value: string) => void;
-  onDeleteTripLink: (id: string) => void;
-  onSaveTripLinks?: () => void; // Callback to trigger sync when editing is done
+  onAddDayLink: () => void;
+  onUpdateDayLink: (id: string, field: 'title' | 'url', value: string) => void;
+  onDeleteDayLink: (id: string) => void;
   prevEventsCount?: number; // Track previous event count to detect new events
 }
 
@@ -95,11 +93,9 @@ function Timeline({
   onUpdateDayTitle,
   onUpdateDayDate,
   onUpdateDayNotes,
-  tripLinks,
-  onAddTripLink,
-  onUpdateTripLink,
-  onDeleteTripLink,
-  onSaveTripLinks
+  onAddDayLink,
+  onUpdateDayLink,
+  onDeleteDayLink,
 }: TimelineProps) {
   if (!day) return null;
 
@@ -111,7 +107,7 @@ function Timeline({
   const safeUpdateDayTitle = isEditing ? onUpdateDayTitle : () => {};
   const safeUpdateDayDate = isEditing ? onUpdateDayDate : () => {};
   const safeUpdateDayNotes = isEditing ? onUpdateDayNotes : () => {};
-  const safeAddTripLink = isEditing ? onAddTripLink : () => {};
+  const safeAddDayLink = isEditing ? onAddDayLink : () => {};
 
   // Tabs state
   const [viewMode, setViewMode] = useState<'itinerary' | 'notes'>('itinerary');
@@ -162,19 +158,19 @@ function Timeline({
     }
   };
   
-  const [editingTripLinkIds, setEditingTripLinkIds] = useState<Set<string>>(new Set());
-  const prevTripLinksLength = useRef(tripLinks.length);
+  const [editingDayLinkIds, setEditingDayLinkIds] = useState<Set<string>>(new Set());
+  const prevDayLinksLength = useRef(day.links?.length || 0);
   
 // Auto-start editing for newly added links
   React.useEffect(() => {
-    if (tripLinks.length > prevTripLinksLength.current) {
-      const newLink = tripLinks[tripLinks.length - 1];
+    if ((day.links?.length || 0) > prevDayLinksLength.current) {
+      const newLink = day.links?.[day.links.length - 1];
       if (newLink && !newLink.title && !newLink.url) {
-        setEditingTripLinkIds(prev => new Set(prev).add(newLink.id));
+        setEditingDayLinkIds(prev => new Set(prev).add(newLink.id));
       }
     }
-    prevTripLinksLength.current = tripLinks.length;
-  }, [tripLinks.length]);
+    prevDayLinksLength.current = day.links?.length || 0;
+  }, [day.links?.length]);
 
 const toggleExpand = (id: string) => {
     const newIds = expandedIds.includes(id) 
@@ -183,19 +179,16 @@ const toggleExpand = (id: string) => {
     setExpandedIds(newIds);
   };
 
-  const startEditingTripLink = (id: string) => {
-    setEditingTripLinkIds(prev => new Set(prev).add(id));
+  const startEditingDayLink = (id: string) => {
+    setEditingDayLinkIds(prev => new Set(prev).add(id));
   };
 
-  const stopEditingTripLink = (id: string) => {
-    setEditingTripLinkIds(prev => {
+  const stopEditingDayLink = (id: string) => {
+    setEditingDayLinkIds(prev => {
       const next = new Set(prev);
       next.delete(id);
       return next;
     });
-    if (onSaveTripLinks) {
-      onSaveTripLinks();
-    }
   };
   
   React.useEffect(() => {
@@ -839,7 +832,7 @@ const toggleExpand = (id: string) => {
               </div>
               {isEditing && (
                 <button 
-                  onClick={onAddTripLink}
+                  onClick={onAddDayLink}
                   className="text-blue-600 bg-blue-50 hover:bg-blue-100 px-2.5 py-1 rounded-lg text-[10px] font-bold flex items-center gap-1 transition-colors"
                 >
                   <PlusCircle size={12}/> 新增
@@ -848,8 +841,8 @@ const toggleExpand = (id: string) => {
             </div>
 
             <div className="flex flex-col gap-2 px-4 pb-4">
-              {tripLinks.map(link => {
-                const isEditing = editingTripLinkIds.has(link.id);
+              {day.links?.map(link => {
+                const isEditing = editingDayLinkIds.has(link.id);
                 return (
                 <div key={link.id} className="group/link flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl p-3 relative hover:bg-indigo-50 hover:border-indigo-200 transition-colors">
                   <div className="bg-indigo-100 text-indigo-600 p-2 rounded-lg shrink-0">
@@ -861,19 +854,19 @@ const toggleExpand = (id: string) => {
                       <input 
                         placeholder="網站名稱 (例: Visit Japan Web)"
                         value={link.title}
-                        onChange={e => onUpdateTripLink(link.id, 'title', e.target.value)}
+                        onChange={e => onUpdateDayLink(link.id, 'title', e.target.value)}
                         className="w-full text-xs font-bold text-slate-700 border border-slate-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-blue-400 bg-white"
                         autoFocus
                       />
                       <input 
                         placeholder="貼上網址 (https://...)"
                         value={link.url}
-                        onChange={e => onUpdateTripLink(link.id, 'url', e.target.value)}
+                        onChange={e => onUpdateDayLink(link.id, 'url', e.target.value)}
                         className="w-full text-[11px] text-slate-500 border border-slate-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-blue-400 bg-white"
                       />
                       <div className="flex justify-end gap-1 mt-1">
                         <button 
-                          onClick={() => stopEditingTripLink(link.id)}
+                          onClick={() => stopEditingDayLink(link.id)}
                           className="px-2 py-1 text-[10px] font-bold text-slate-500 bg-white border border-slate-300 rounded-lg hover:bg-slate-50"
                         >
                           完成
@@ -893,20 +886,11 @@ const toggleExpand = (id: string) => {
                   )}
                   
                   <div className="flex items-center gap-1 shrink-0">
-                    {!isEditing && (
-                      <button 
-                        onClick={() => startEditingTripLink(link.id)}
-                        className="p-1.5 text-slate-300 hover:text-blue-500 rounded-full opacity-0 group-hover/link:opacity-100 transition-all"
-                        title="編輯"
-                      >
-                        <Edit2 size={12} />
-                      </button>
-                    )}
                     {isEditing && (
                       <button 
                         onClick={() => {
-                          stopEditingTripLink(link.id);
-                          onDeleteTripLink(link.id);
+                          stopEditingDayLink(link.id);
+                          onDeleteDayLink(link.id);
                         }}
                         className="p-1.5 text-slate-300 hover:text-red-500 rounded-full opacity-0 group-hover/link:opacity-100 transition-all"
                         title="刪除"
@@ -914,12 +898,30 @@ const toggleExpand = (id: string) => {
                         <Trash2 size={12} />
                       </button>
                     )}
+                    {!isEditing && isEditing && (
+                      <button 
+                        onClick={() => startEditingDayLink(link.id)}
+                        className="p-1.5 text-slate-300 hover:text-blue-500 rounded-full opacity-0 group-hover/link:opacity-100 transition-all"
+                        title="編輯"
+                      >
+                        <Edit2 size={12} />
+                      </button>
+                    )}
+                    {!isEditing && (
+                      <button 
+                        onClick={() => startEditingDayLink(link.id)}
+                        className="p-1.5 text-slate-300 hover:text-blue-500 rounded-full opacity-0 group-hover/link:opacity-100 transition-all"
+                        title="編輯"
+                      >
+                        <Edit2 size={12} />
+                      </button>
+                    )}
                   </div>
                 </div>
                 );
               })}
 
-              {tripLinks.length === 0 && (
+              {(!day.links || day.links.length === 0) && (
                 <div className="text-center text-slate-400 text-[11px] font-medium py-6 border-2 border-dashed border-slate-200 rounded-xl">
                   還沒有任何常用連結，點擊上方「新增」來加入吧！
                 </div>
@@ -964,8 +966,8 @@ export default memo(Timeline, (prev, next) => {
     }
   }
   
-  // Re-render if tripLinks change
-  if (prev.tripLinks?.length !== next.tripLinks?.length) return false;
+  // Re-render if day links change
+  if ((prev.day?.links?.length || 0) !== (next.day?.links?.length || 0)) return false;
   
   return true;
 });

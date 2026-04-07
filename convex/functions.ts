@@ -26,7 +26,7 @@ export const getOrCreateTrip = query({
     }
     
     if (!trip) {
-      return { trip: null, days: [], tripLinks: [] };
+      return { trip: null, days: [] };
     }
     
     // Get days for this trip
@@ -36,83 +36,26 @@ export const getOrCreateTrip = query({
       .order('asc')
       .collect();
     
-    // Get events for each day
-    const daysWithEvents = await Promise.all(
+    // Get events and links for each day
+    const daysWithData = await Promise.all(
       days.map(async (day) => {
         const events = await ctx.db
           .query('dayEvents')
           .withIndex('dayId', (q) => q.eq('dayId', day._id))
           .order('asc')
           .collect();
-        return { ...day, events };
+        const links = await ctx.db
+          .query('dayLinks')
+          .withIndex('dayId', (q) => q.eq('dayId', day._id))
+          .collect();
+        return { ...day, events, links };
       })
     );
     
-    // Get trip links
-    const tripLinks = await ctx.db
-      .query('tripLinks')
-      .withIndex('tripId', (q) => q.eq('tripId', trip._id))
-      .collect();
-    
     return {
       trip,
-      days: daysWithEvents,
-      tripLinks,
+      days: daysWithData,
     };
-  },
-});
-
-// Get trip by ID
-export const getTrip = query({
-  args: { tripId: v.optional(v.string()) },
-  handler: async (ctx, args) => {
-    if (!args.tripId) return null;
-    const normalizedId = ctx.db.normalizeId('trips', args.tripId);
-    if (!normalizedId) return null;
-    return await ctx.db.get(normalizedId);
-  },
-});
-
-// Get all days for a trip
-export const getTripDays = query({
-  args: { tripId: v.string() },
-  handler: async (ctx, args) => {
-    return await ctx.db
-      .query('tripDays')
-      .withIndex('tripId', (q) => q.eq('tripId', args.tripId))
-      .collect();
-  },
-});
-
-// Get all events for a trip
-export const getTripEvents = query({
-  args: { tripId: v.string() },
-  handler: async (ctx, args) => {
-    const days = await ctx.db
-      .query('tripDays')
-      .withIndex('tripId', (q) => q.eq('tripId', args.tripId))
-      .collect();
-    
-    const allEvents = [];
-    for (const day of days) {
-      const events = await ctx.db
-        .query('dayEvents')
-        .withIndex('dayId', (q) => q.eq('dayId', day._id))
-        .collect();
-      allEvents.push(...events.map(e => ({ ...e, dayId: day._id })));
-    }
-    return allEvents;
-  },
-});
-
-// Get all links for a trip
-export const getTripLinks = query({
-  args: { tripId: v.string() },
-  handler: async (ctx, args) => {
-    return await ctx.db
-      .query('tripLinks')
-      .withIndex('tripId', (q) => q.eq('tripId', args.tripId))
-      .collect();
   },
 });
 
@@ -138,11 +81,11 @@ export const saveTrip = mutation({
         links: v.optional(v.array(v.any())),
         sortOrder: v.number(),
       })),
-    })),
-    tripLinks: v.array(v.object({
-      id: v.string(),
-      title: v.string(),
-      url: v.string(),
+      links: v.optional(v.array(v.object({
+        id: v.string(),
+        title: v.string(),
+        url: v.string(),
+      }))),
     })),
   },
   handler: async (ctx, args) => {
@@ -171,20 +114,22 @@ export const saveTrip = mutation({
         .collect();
       
       for (const day of oldDays) {
+        // Delete events
         const events = await ctx.db
           .query('dayEvents')
           .withIndex('dayId', (q) => q.eq('dayId', day._id))
           .collect();
         for (const e of events) await ctx.db.delete(e._id);
+        
+        // Delete day links
+        const links = await ctx.db
+          .query('dayLinks')
+          .withIndex('dayId', (q) => q.eq('dayId', day._id))
+          .collect();
+        for (const l of links) await ctx.db.delete(l._id);
+        
         await ctx.db.delete(day._id);
       }
-
-      // Delete old links
-      const oldLinks = await ctx.db
-        .query('tripLinks')
-        .withIndex('tripId', (q) => q.eq('tripId', tripId))
-        .collect();
-      for (const l of oldLinks) await ctx.db.delete(l._id);
 
       // Insert new days
       for (const day of args.days) {
@@ -210,15 +155,17 @@ export const saveTrip = mutation({
             sortOrder: event.sortOrder,
           });
         }
-      }
-
-      // Insert links
-      for (const link of args.tripLinks) {
-        await ctx.db.insert('tripLinks', {
-          tripId,
-          title: link.title,
-          url: link.url,
-        });
+        
+        // Insert day links
+        if (day.links) {
+          for (const link of day.links) {
+            await ctx.db.insert('dayLinks', {
+              dayId,
+              title: link.title,
+              url: link.url,
+            });
+          }
+        }
       }
     }
 

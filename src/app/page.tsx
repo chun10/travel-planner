@@ -45,13 +45,12 @@ function MainApp({
     isEditing,
     tripName, setTripName,
     days, setDays,
-    tripLinks, setTripLinks,
     selectedDayId, setSelectedDayId,
     tripId,
     enterEditMode,
     saveToConvex,
     cancelEdit,
-  } = useConvexSync(initialItinerary, defaultTripLinks);
+  } = useConvexSync(initialItinerary);
 
   const [isEditingTripName, setIsEditingTripName] = useState(false);
   const [tripNameInput, setTripNameInput] = useState('');
@@ -192,16 +191,40 @@ function MainApp({
     }
   };
 
-  const handleAddTripLink = () => {
-    setTripLinks((prev: any[]) => [...prev, { id: crypto.randomUUID(), title: '', url: '' }]);
+  const handleAddDayLink = () => {
+    setDays((prevDays: ItineraryDay[]) => prevDays.map(day => {
+      if (day.id === selectedDayId) {
+        return {
+          ...day,
+          links: [...(day.links || []), { id: crypto.randomUUID(), title: '', url: '' }]
+        };
+      }
+      return day;
+    }));
   };
 
-  const handleUpdateTripLink = (id: string, field: 'title' | 'url', value: string) => {
-    setTripLinks((prev: any[]) => prev.map(l => l.id === id ? { ...l, [field]: value } : l));
+  const handleUpdateDayLink = (id: string, field: 'title' | 'url', value: string) => {
+    setDays((prevDays: ItineraryDay[]) => prevDays.map(day => {
+      if (day.id === selectedDayId) {
+        return {
+          ...day,
+          links: day.links?.map(l => l.id === id ? { ...l, [field]: value } : l)
+        };
+      }
+      return day;
+    }));
   };
 
-  const handleDeleteTripLink = (id: string) => {
-    setTripLinks((prev: any[]) => prev.filter(l => l.id !== id));
+  const handleDeleteDayLink = (id: string) => {
+    setDays((prevDays: ItineraryDay[]) => prevDays.map(day => {
+      if (day.id === selectedDayId) {
+        return {
+          ...day,
+          links: day.links?.filter(l => l.id !== id)
+        };
+      }
+      return day;
+    }));
   };
 
   // Show loading screen while localStorage is being read
@@ -361,10 +384,9 @@ function MainApp({
               onUpdateDayTitle={handleUpdateDayTitle}
               onUpdateDayDate={handleUpdateDayDate}
               onUpdateDayNotes={handleUpdateDayNotes}
-              tripLinks={tripLinks}
-              onAddTripLink={handleAddTripLink}
-              onUpdateTripLink={handleUpdateTripLink}
-              onDeleteTripLink={handleDeleteTripLink}
+              onAddDayLink={handleAddDayLink}
+              onUpdateDayLink={handleUpdateDayLink}
+              onDeleteDayLink={handleDeleteDayLink}
             />
           ) : (
             <div className="flex flex-col items-center justify-center h-full gap-3 text-slate-400">
