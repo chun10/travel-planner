@@ -63,7 +63,7 @@ export function useConvexSync(initialDays: ItineraryDay[], initialTripLinks?: { 
           eventType: e.eventType,
           transportToNext: e.transportToNext,
           links: e.links || [],
-        })),
+        })).sort((a: any, b: any) => (a.time || '').localeCompare(b.time || '')),
         links: (d.links || []).map((l: any) => ({
           id: l._id,
           title: l.title,

@@ -89,9 +89,12 @@ function MainApp({
   const handleUpdateEvent = (eventId: string, updatedEvent: DayEvent) => {
     setDays((prevDays: ItineraryDay[]) => prevDays.map(day => {
       if (day.id === selectedDayId) {
+        const updatedEvents = day.events.map(ev => ev.id === eventId ? updatedEvent : ev);
+        // Sort by time after update
+        updatedEvents.sort((a, b) => a.time.localeCompare(b.time));
         return {
           ...day,
-          events: day.events.map(ev => ev.id === eventId ? updatedEvent : ev)
+          events: updatedEvents
         };
       }
       return day;
@@ -111,7 +114,7 @@ function MainApp({
       if (day.id === selectedDayId) {
         return {
           ...day,
-          events: [...day.events, newEvent].sort((a, b) => a.time.localeCompare(b.time))
+          events: [...day.events, newEvent]  // Add at the end without sorting
         };
       }
       return day;
