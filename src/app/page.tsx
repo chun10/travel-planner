@@ -143,12 +143,17 @@ function MainApp({
   };
 
   const handleUpdateDayDate = (newDate: string) => {
-    setDays((prevDays: ItineraryDay[]) => prevDays.map(day => {
-      if (day.id === selectedDayId) {
-        return { ...day, date: newDate };
-      }
-      return day;
-    }));
+    setDays((prevDays: ItineraryDay[]) => {
+      const updatedDays = prevDays.map(day => {
+        if (day.id === selectedDayId) {
+          return { ...day, date: newDate };
+        }
+        return day;
+      });
+      // Sort all days by date after update
+      updatedDays.sort((a, b) => a.date.localeCompare(b.date));
+      return updatedDays;
+    });
   };
 
   const handleUpdateDayNotes = (newNotes: string) => {

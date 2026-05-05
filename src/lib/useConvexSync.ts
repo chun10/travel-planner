@@ -70,6 +70,8 @@ export function useConvexSync(initialDays: ItineraryDay[], initialTripLinks?: { 
           url: l.url,
         })),
       }));
+      // Sort days by date
+      mappedDays.sort((a: any, b: any) => (a.date || '').localeCompare(b.date || ''));
       setDays(mappedDays);
       setSelectedDayId(mappedDays[0]?.id || '');
     }
