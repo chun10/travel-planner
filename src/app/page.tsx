@@ -60,6 +60,18 @@ function MainApp({
   const tabsRef = useRef<HTMLDivElement>(null);
   const prevDaysLength = useRef(days.length);
   const hasInitialized = useRef(false);
+  const [canEdit, setCanEdit] = useState(false);
+
+  // Check URL for edit token
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const editToken = params.get('edit');
+      if (editToken && editToken.length >= 8) {
+        setCanEdit(true);
+      }
+    }
+  }, []);
 
   // Scroll to left on initial load (after DOM is fully ready)
   useEffect(() => {
@@ -284,8 +296,8 @@ function MainApp({
                 <Cloud size={16} />
               </span>
             )}
-            {/* Edit mode toggle */}
-            {isLoaded && (
+            {/* Edit mode toggle - only show if user has edit permission */}
+            {isLoaded && canEdit && (
               isEditing ? (
                 <div className="flex gap-1">
                   <button 
