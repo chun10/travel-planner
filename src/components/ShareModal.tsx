@@ -13,15 +13,27 @@ export default function ShareModal({ tripId, tripName, onClose }: ShareModalProp
   const [copiedView, setCopiedView] = useState(false);
   const [copiedEdit, setCopiedEdit] = useState(false);
   const [editToken, setEditToken] = useState<string>('');
+  const [canEdit, setCanEdit] = useState(false);
+
+  // Check if user has edit permission
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const editParam = params.get('edit');
+      if (editParam && editParam.length >= 8) {
+        setCanEdit(true);
+      }
+    }
+  }, []);
 
   // Generate edit token on mount (simple random string)
   useEffect(() => {
-    if (tripId) {
+    if (tripId && canEdit) {
       // Generate a simple token based on tripId + random
       const token = btoa(tripId + '-' + Date.now()).replace(/[^a-zA-Z0-9]/g, '').substring(0, 16);
       setEditToken(token);
     }
-  }, [tripId]);
+  }, [tripId, canEdit]);
 
   const origin = typeof window !== 'undefined' ? window.location.origin : '';
   
@@ -76,8 +88,9 @@ export default function ShareModal({ tripId, tripName, onClose }: ShareModalProp
             <p className="text-[10px] text-slate-400 mt-1.5">任何人可查看，但無法編輯</p>
           </div>
 
-          {/* Edit Link */}
-          <div>
+          {/* Edit Link - Only show for users with edit permission */}
+          {canEdit && editToken && (
+            <div>
             <div className="flex items-center gap-2 mb-2">
               <Pencil size={14} className="text-blue-500" />
               <label className="text-xs font-bold text-slate-500 uppercase tracking-wide">可編輯連結</label>
@@ -104,6 +117,7 @@ export default function ShareModal({ tripId, tripName, onClose }: ShareModalProp
             </div>
             <p className="text-[10px] text-slate-400 mt-1.5">打開連結即可編輯，請妥善保管</p>
           </div>
+          )}
         </div>
       </div>
     </div>
